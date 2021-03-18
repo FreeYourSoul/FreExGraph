@@ -20,29 +20,22 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-from dataclasses import dataclass, field
-from typing import Any, List, Optional, Union
+from dataclasses import field, dataclass
+from typing import Any, Optional, Union, Set, List
 
 import networkx as nx
 
 root_node = "root_node"
-
-exception_on_join_node_visit: bool = True
-"""global setting to set if we want to raise exception in case of a Visitation of a JoinNode"""
 
 
 @dataclass
 class FreExNode:
     """ Representation of the content of a node in the execution graph """
 
-    node: Any
-    """ Node object """
-
     name: str
-    """ Base name of the node, it is node the id of the node in the graph,"""
+    """ Base name of the node, it is not the id of the node in the graph,"""
 
-    parents: List[str] = field(default_factory=[])
+    parents: Set[str] = field(default_factory=set)
     """ Parents of the node to add """
 
     id: str = None
@@ -62,18 +55,32 @@ class FreExNode:
     It is not needed (useless) to set it manually
     """
 
+    depth: int = 0
+
     def accept(self, visitor: "AbstractVisitor") -> bool:
-        return self.node.accept(visitor)
-
-
-class JoinNode(FreExNode):
-    """Class representing a join with another graph """
-
-    # throw by default or is ignored in visitation
-    def accept(self, _) -> bool:
-        if exception_on_join_node_visit:
-            raise RuntimeError("Visitation of JoinNode: set exception_on_join_node_visit to not throw")
+        from freexgraph.standard_visitor import is_standard_visitor
+        if is_standard_visitor(visitor):
+            return visitor.visit_standard(self)
         return True
+
+    def __lshift__(self, rhs: "FreExNode"):
+        self.parents.add(rhs.id)
+
+
+class RootNode(FreExNode):
+    pass
+
+
+class GraphNode(FreExNode):
+    """Class representing a node that contains another graph"""
+
+    _graph: "FreExGraph"
+
+    def __init__(self, graph: "FreExGraph"):
+        self._graph = graph
+
+    def accept(self, visitor: "AbstractVisitor") -> bool:
+        return visitor.visit(self._graph.root())
 
 
 class BundleDependencyNode(FreExNode):
@@ -91,9 +98,9 @@ class FreExGraph:
 
     def __init__(self):
         self._graph = nx.DiGraph()
-        self._graph.add_node(root_node, depth=0)
+        self._graph.add_node(root_node, content=RootNode(name=root_node, graph_ref=self._graph))
 
-    def add_node(self, node_id: str, node_content: Union[FreExNode, JoinNode]) -> None:
+    def add_node(self, node_id: str, node_content: Union[FreExNode, GraphNode]) -> None:
         """ Add a node in the graph
 
         :param node_id: id of the node to add
@@ -109,13 +116,13 @@ class FreExGraph:
 
         node_content.id = node_id
         node_content.graph_ref = self._graph
-        depth: int = self._find_current_depth(node_content.parents)
-        self._graph.add_node(node_id, content=node_content, depth=depth)
+        node_content.depth = self._find_current_depth(node_content.parents)
+        self._graph.add_node(node_id, content=node_content)
 
-        if len(node_content.parents) == 0:
-            self._graph.add_edge(root_node, node_id)
         for parent in node_content.parents:
             self._graph.add_edge(parent, node_id)
+        if len(node_content.parents) == 0:
+            self._graph.add_edge(root_node, node_id)
 
     def join_graph(self, join_node_id: str, another_graph: "FreExGraph") -> None:
         """Join a given graph with the current graph from the provided join_node
@@ -128,7 +135,7 @@ class FreExGraph:
         assert self._graph.has_node(
             join_node_id
         ), f"{join_node_id} has to be in the execution graph to joined"
-        assert isinstance(self._graph[join_node_id], JoinNode), f"node {join_node_id} has to be a JoinNode"
+        assert isinstance(self._graph[join_node_id], GraphNode), f"node {join_node_id} has to be a JoinNode"
         ...
 
     def remove_node(self, node_id: str) -> None:
@@ -154,25 +161,21 @@ class FreExGraph:
             node_id
         ), f"{node_id} has to be in the execution graph to be forked"
 
-        def fork_node(to_fork: FreExNode, content: Any) -> None:
+        def fork_node(to_fork: FreExNode) -> None:
             """recursive internal function to copy a node and then copying all children"""
             id_forked_node = self._make_node_id_with_fork(to_fork.id, to_fork.fork_id)
             new_node = FreExNode(
                 fork_id=str(to_fork.fork_id),
                 name=str(to_fork.name),
-                parents=list(to_fork.parents),
-                node=content,
+                parents=set(to_fork.parents),
             )
             self.add_node(id_forked_node, new_node)
             for successor in self._graph.successors(to_fork.id):
-                fork_node(
-                    self._graph[successor]["content"],
-                    self._graph[successor]["content"].node,
-                )
+                fork_node(self.get_node(successor))
 
-        node_to_fork = self._graph[node_id]["content"]
+        node_to_fork = self.get_node(node_id)
         node_to_fork.fork_id = fork_id
-        fork_node(node_to_fork, forked_node_content)
+        fork_node(node_to_fork)
 
     def bundle_nodes(self, max_limit: int) -> int:
         """ bundle the whole graph dependencies with fake node in order to ensure that no node has more than the
@@ -185,7 +188,14 @@ class FreExGraph:
         tick = 0
         return tick
 
-    def _find_current_depth(self, parents: List[str]) -> int:
+    def root(self) -> FreExNode:
+        """:return: root node of the graph"""
+        return self.get_node(root_node)
+
+    def get_node(self, node_id: str) -> FreExNode:
+        return self._graph.nodes[node_id]["content"]
+
+    def _find_current_depth(self, parents: Set[str]) -> int:
         """
         Check the depth of all given parents, and return the biggest one + 1 (give the layer depth of the current node
         in the execution graph)
@@ -194,10 +204,14 @@ class FreExGraph:
         """
         if len(parents) == 0:
             return 1
-        parent_nodes = [
-            self._graph.nodes(key) for key in parents if self._graph.has_node(key)
+        parent_nodes: List[dict] = [
+            dict(self._graph.nodes[key]) for key in parents if self._graph.has_node(key)
         ]
-        return max(parent_nodes, key=lambda v: v["content"].depth) + 1
+        depth = 0
+        for v in parent_nodes:
+            cmp = v["content"].depth
+            depth = cmp if depth < cmp else depth
+        return depth + 1
 
     @staticmethod
     def _make_node_id_with_fork(node_id: str, fork_id: str) -> str:

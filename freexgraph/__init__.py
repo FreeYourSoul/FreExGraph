@@ -25,5 +25,5 @@
 Module to manipulate an execution graph
 """
 
-from freexgraph.FreExGraph import FreExGraph, FreExNode, exception_on_join_node_visit
-from freexgraph.Visitor import AbstractVisitor
+from freexgraph.freexgraph import FreExGraph, FreExNode
+from freexgraph.visitor import AbstractVisitor

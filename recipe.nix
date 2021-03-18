@@ -1,7 +1,7 @@
-{ lib, buildPythonPackage, python38Packages, nix-gitignore, use_revision ? null }:
+{ lib, python38, python38Packages, nix-gitignore, use_revision ? null }:
 
-buildPythonPackage rec {
-  pname = "FreExGraph";
+python38.pkgs.buildPythonPackage rec {
+  pname = "freexgraph";
   version = "0.1.0";
 
   src = if (builtins.isNull use_revision || use_revision == "") then
@@ -12,15 +12,18 @@ buildPythonPackage rec {
       rev = use_revision;
     };
 
-  checkInputs = [ pytest ];
+  checkInputs = [ python38Packages.pytest ];
   propagatedBuildInputs = with python38Packages; [ networkx tqdm ];
 
-  doCheck = false;
+  doCheck = true;
+
+  checkPhase = ''
+    python -m pytest
+  '';
 
   meta = with lib; {
     homepage = "https://github.com/pytoolz/toolz";
     description = "Execution graph handling tools";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ fridh ];
+    license = licenses.mit;
   };
 }

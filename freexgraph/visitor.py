@@ -25,9 +25,9 @@ from contextlib import contextmanager
 from typing import List, Tuple, Any
 
 import networkx as nx
-import tqdm as tqdm
+from tqdm import tqdm
 
-from freexgraph.FreExGraph import FreExNode, BundleDependencyNode
+from freexgraph.freexgraph import FreExNode, BundleDependencyNode
 
 
 @contextmanager
@@ -53,7 +53,7 @@ def _get_len(sorted_node_list: List[Tuple], ref_graph: nx.DiGraph, with_progress
     if not with_progress_bar:
         return 0
     return len(
-        [n for n in sorted_node_list if not _is_node_ignored(ref_graph.nodes[n]["content"].node)])
+        [n for n in sorted_node_list if not _is_node_ignored(ref_graph.nodes[n]["content"])])
 
 
 class AbstractVisitor:
@@ -82,10 +82,10 @@ class AbstractVisitor:
             pbar.set_description(f"Processing Visitor {type(self).__name__}")
 
             for node_id in sorted_node_list:
-                if not root.graph_ref.nodes[node_id].node.accept(self):
+                if not root.graph_ref.nodes[node_id]["content"].accept(self):
                     return False
                 pbar.set_postfix({'node': node_id})
-                pbar.update(1)
+                pbar.update()
 
         return True
 
@@ -150,10 +150,10 @@ class VisitorComposer:
             for node_id in sorted_node_list:
                 # do the visitation for the node on each action visitor
                 for action_visitor in self._action_composed:
-                    if not root.graph_ref.nodes[node_id].node.accept(action_visitor):
+                    if not root.graph_ref.nodes[node_id].accept(action_visitor):
                         return False
 
                 pbar.set_postfix({'node': node_id})
-                pbar.update(1)
+                pbar.update()
 
         return True

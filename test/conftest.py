@@ -21,21 +21,41 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import setuptools
+import pytest
 
-setuptools.setup(
-    name="freexgraph",
-    version="0.1.0",
-    author="Quentin Balland",
-    author_email="ballandFyS@protonmail.com",
-    description="An execution graph library",
-    url="https://github.com/FreeYourSoul/FreExGraph",
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-    ],
+import uuid
 
-    packages=setuptools.find_packages(),
-    python_requires=">=3.6",
-)
+from freexgraph import FreExGraph, FreExNode
+
+
+class TestingNode(FreExNode):
+    def accept(self, visitor: "AbstractVisitor") -> bool:
+        visitor.testing_visit(self)
+        return FreExNode.accept(self, visitor)
+
+
+@pytest.fixture(scope="function")
+def valid_basic_execution_graph():
+    #
+    #
+    #     ,_____, id2
+    #  id1         |
+    #              |    ,----- id3
+    #              |   /           \
+    #              |  /             `___ id5
+    #             id4 `--------------`
+    #
+
+    execution_graph = FreExGraph()
+    id1 = f"id1_{uuid.uuid4()}"
+    id2 = f"id2_{uuid.uuid4()}"
+    id3 = f"id3_{uuid.uuid4()}"
+    id4 = f"id4_{uuid.uuid4()}"
+    id5 = f"id5_{uuid.uuid4()}"
+
+    execution_graph.add_node(id1, TestingNode(name="id1"))
+    execution_graph.add_node(id2, TestingNode(name="id2", parents={id1}))
+    execution_graph.add_node(id4, TestingNode(name="id4", parents={id2}))
+    execution_graph.add_node(id3, TestingNode(name="id3", parents={id2, id4}))
+    execution_graph.add_node(id5, TestingNode(name="id5", parents={id4, id3}))
+    yield execution_graph
