@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import uuid
-from typing import List
+from typing import List, Optional
 
 import pytest
 
@@ -72,6 +72,11 @@ def test_make_exec_graph():
 
     assert execution_graph._graph.has_node(id5)
     assert execution_graph.get_node(id5).depth == 5
+
+
+def test_get_not_existing(valid_basic_execution_graph):
+    node: Optional[FreExNode] = valid_basic_execution_graph.get_node("NOT_EXISTING")
+    assert node is None
 
 
 def test_visitation(valid_basic_execution_graph):

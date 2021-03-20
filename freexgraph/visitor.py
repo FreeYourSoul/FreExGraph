@@ -33,13 +33,13 @@ from freexgraph.freexgraph import FreExNode, BundleDependencyNode
 @contextmanager
 def no_progress(**_):
     class NoProg:
-        def update(self, _: int):
+        def update(self, _=None):
             pass
 
-        def set_description(self, _: str):
+        def set_description(self, _=None):
             pass
 
-        def set_postfix(self, _: dict):
+        def set_postfix(self, _=None):
             pass
 
     yield NoProg()

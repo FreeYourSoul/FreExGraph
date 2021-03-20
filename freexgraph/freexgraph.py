@@ -20,42 +20,33 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from dataclasses import field, dataclass
-from typing import Any, Optional, Union, Set, List
+
+from typing import Any, Optional, Union, Set, List, Tuple
 
 import networkx as nx
 
 root_node = "root_node"
 
 
-@dataclass
 class FreExNode:
     """ Representation of the content of a node in the execution graph """
 
     name: str
     """ Base name of the node, it is not the id of the node in the graph,"""
 
-    parents: Set[str] = field(default_factory=set)
+    parents: Set[str]
     """ Parents of the node to add """
 
-    id: str = None
-    """ Id of the node in the graph, will be automatically set/overridden when adding the node
-    It is not needed (useless) to set it manually.
-    
-    When a fork is created, the name is used as base and combined with the fork_id in order to ensure an unique id 
-    """
+    def __init__(self, name: str = "", *, parents: Set[str] = None, graph_ref: nx.DiGraph = None):
+        self.name = name
+        self.parents = parents or set()
+        self._graph_ref = graph_ref
 
-    fork_id: Optional[str] = None
-    """ Id of the fork if the current node is from a fork,  will be automatically set/overridden when making a fork
-    It is not needed (useless) to set it manually
-    """
-
-    graph_ref: nx.DiGraph = None
-    """ Ref **internally** used by visitor pattern, will be automatically set/overridden when adding a node
-    It is not needed (useless) to set it manually
-    """
-
-    depth: int = 0
+    # == PRIVATE ==
+    _id: str = None
+    _fork_id: Optional[str] = None
+    _graph_ref: nx.DiGraph = None
+    _depth: int = 0
 
     def accept(self, visitor: "AbstractVisitor") -> bool:
         from freexgraph.standard_visitor import is_standard_visitor
@@ -63,8 +54,35 @@ class FreExNode:
             return visitor.visit_standard(self)
         return True
 
-    def __lshift__(self, rhs: "FreExNode"):
-        self.parents.add(rhs.id)
+    @property
+    def id(self) -> str:
+        """ Id of the node in the graph, will be automatically set/overridden when adding the node
+        It is not needed (useless) to set it manually.
+
+        When a fork is created, the name is used as base and combined with the fork_id in order to ensure an unique id
+        """
+        return self._id
+
+    @property
+    def fork_id(self) -> str:
+        """ Id of the fork if the current node is from a fork,  will be automatically set/overridden when making a fork
+        It is not needed (useless) to set it manually
+        """
+        return self.fork_id
+
+    @property
+    def depth(self) -> int:
+        """ execution depth calculated by the graph, can be used in order to know which node can be executed in
+        parallel safely
+        """
+        return self._depth
+
+    @property
+    def graph_ref(self) -> nx.DiGraph:
+        """ Ref **internally** used by visitor pattern, will be automatically set/overridden when adding a node
+        It is not needed (useless) to set it manually
+        """
+        return self._graph_ref
 
 
 class RootNode(FreExNode):
@@ -77,6 +95,7 @@ class GraphNode(FreExNode):
     _graph: "FreExGraph"
 
     def __init__(self, graph: "FreExGraph"):
+        super().__init__(graph_ref=self._graph._graph)
         self._graph = graph
 
     def accept(self, visitor: "AbstractVisitor") -> bool:
@@ -98,7 +117,20 @@ class FreExGraph:
 
     def __init__(self):
         self._graph = nx.DiGraph()
-        self._graph.add_node(root_node, content=RootNode(name=root_node, graph_ref=self._graph))
+        root = RootNode(name=root_node, graph_ref=self._graph)
+        root._id = root_node
+        self._graph.add_node(root_node, content=root)
+
+    def add_nodes(self, nodes: List[Tuple[str, Union[FreExNode, GraphNode]]]):
+        """ Add all the provided nodes in the execution graph.
+        The ordering of the node creation can be tedious, as it is required that every node parents already exists to be
+        added. This ordering will be inferred making in this method/ it easier to create nodes, and then add them in the
+        graph.
+
+        If such inference is impossible, an exception is thrown because of an impossibility to create the graph.
+
+        :param nodes: list of nodes to add in the graph
+        """
 
     def add_node(self, node_id: str, node_content: Union[FreExNode, GraphNode]) -> None:
         """ Add a node in the graph
@@ -114,15 +146,16 @@ class FreExGraph:
             [self._graph.has_node(p) for p in node_content.parents]
         ), f"all node from parents ({node_content.parents}) has to be in previously added in the execution graph"
 
-        node_content.id = node_id
-        node_content.graph_ref = self._graph
-        node_content.depth = self._find_current_depth(node_content.parents)
+        node_content._id = node_id
+        node_content._graph_ref = self._graph
+        node_content._depth = self._find_current_depth(node_content.parents)
         self._graph.add_node(node_id, content=node_content)
+
+        if len(node_content.parents) == 0:
+            node_content.parents.add(root_node)
 
         for parent in node_content.parents:
             self._graph.add_edge(parent, node_id)
-        if len(node_content.parents) == 0:
-            self._graph.add_edge(root_node, node_id)
 
     def join_graph(self, join_node_id: str, another_graph: "FreExGraph") -> None:
         """Join a given graph with the current graph from the provided join_node
@@ -165,10 +198,11 @@ class FreExGraph:
             """recursive internal function to copy a node and then copying all children"""
             id_forked_node = self._make_node_id_with_fork(to_fork.id, to_fork.fork_id)
             new_node = FreExNode(
-                fork_id=str(to_fork.fork_id),
                 name=str(to_fork.name),
                 parents=set(to_fork.parents),
+                graph_ref=to_fork.graph_ref
             )
+            new_node._fork_id = to_fork.fork_id
             self.add_node(id_forked_node, new_node)
             for successor in self._graph.successors(to_fork.id):
                 fork_node(self.get_node(successor))
@@ -192,7 +226,9 @@ class FreExGraph:
         """:return: root node of the graph"""
         return self.get_node(root_node)
 
-    def get_node(self, node_id: str) -> FreExNode:
+    def get_node(self, node_id: str) -> Optional[FreExNode]:
+        if not self._graph.has_node(node_id):
+            return None
         return self._graph.nodes[node_id]["content"]
 
     def _find_current_depth(self, parents: Set[str]) -> int:
