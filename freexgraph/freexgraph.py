@@ -128,6 +128,7 @@ class FreExGraph:
         :param nodes: list of nodes to add in the graph
         """
 
+
     def add_node(self, node_id: str, node_content: Union[FreExNode, GraphNode]) -> None:
         """ Add a node in the graph
 
@@ -177,6 +178,33 @@ class FreExGraph:
         self._graph.remove_nodes_from(self._graph.successors(node_id))
         self._graph.remove_node(node_id)
 
+    def root(self) -> FreExNode:
+        """:return: root node of the graph"""
+        return self.get_node(root_node)
+
+    def get_node(self, node_id: str) -> Optional[FreExNode]:
+        if not self._graph.has_node(node_id):
+            return None
+        return self._graph.nodes[node_id]["content"]
+
+    def _find_current_depth(self, parents: Set[str]) -> int:
+        """
+        Check the depth of all given parents, and return the biggest one + 1 (give the layer depth of the current node
+        in the execution graph)
+        :param parents: to check
+        :return: the depth of the node that has the provided parents.
+        """
+        if len(parents) == 0:
+            return 1
+        parent_nodes: List[dict] = [
+            dict(self._graph.nodes[key]) for key in parents if self._graph.has_node(key)
+        ]
+        depth = 0
+        for v in parent_nodes:
+            cmp = v["content"].depth
+            depth = cmp if depth < cmp else depth
+        return depth + 1
+
     def fork_from_node(
             self, node_id: str, fork_id: str, forked_node_content: Any
     ) -> None:
@@ -206,33 +234,6 @@ class FreExGraph:
         node_to_fork = self.get_node(node_id)
         node_to_fork.fork_id = fork_id
         fork_node(node_to_fork)
-
-    def root(self) -> FreExNode:
-        """:return: root node of the graph"""
-        return self.get_node(root_node)
-
-    def get_node(self, node_id: str) -> Optional[FreExNode]:
-        if not self._graph.has_node(node_id):
-            return None
-        return self._graph.nodes[node_id]["content"]
-
-    def _find_current_depth(self, parents: Set[str]) -> int:
-        """
-        Check the depth of all given parents, and return the biggest one + 1 (give the layer depth of the current node
-        in the execution graph)
-        :param parents: to check
-        :return: the depth of the node that has the provided parents.
-        """
-        if len(parents) == 0:
-            return 1
-        parent_nodes: List[dict] = [
-            dict(self._graph.nodes[key]) for key in parents if self._graph.has_node(key)
-        ]
-        depth = 0
-        for v in parent_nodes:
-            cmp = v["content"].depth
-            depth = cmp if depth < cmp else depth
-        return depth + 1
 
     @staticmethod
     def _make_node_id_with_fork(node_id: str, fork_id: str) -> str:

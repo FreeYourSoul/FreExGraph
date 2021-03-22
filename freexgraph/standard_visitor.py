@@ -50,7 +50,7 @@ class FindFirstVisitor(AbstractVisitor):
         self._predicate = predicate
 
     def visit_standard(self, node: FreExNode) -> bool:
-        if self._predicate(node):
+        if node.id != root_node and self._predicate(node):
             self.result = node
             # result found, stop visitation
             return False
@@ -72,7 +72,7 @@ class FindAllVisitor(AbstractVisitor):
         self._predicate = predicate
 
     def visit_standard(self, node: FreExNode) -> bool:
-        if self._predicate(node):
+        if node.id != root_node and self._predicate(node):
             self.results.append(node)
         return True
 
