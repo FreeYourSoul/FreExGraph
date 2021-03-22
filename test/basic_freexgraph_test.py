@@ -20,23 +20,40 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 import uuid
 from typing import List, Optional
 
-import pytest
+from freexgraph.freexgraph import GraphNode
 
 from freexgraph import AbstractVisitor, FreExNode, FreExGraph
 
 
-class VisitationForTesting(AbstractVisitor):
+class NodeForTest(FreExNode):
+    def accept(self, visitor: "AbstractVisitor") -> bool:
+        visitor.testing_visit(self)
+        return FreExNode.accept(self, visitor)
 
-    visited: List[str] = []
+
+class VisitationForTesting(AbstractVisitor):
+    visited: List[str]
+    inner_graph_started: List[str]
+    inner_graph_ended: List[str]
 
     def __init__(self):
         super().__init__(with_progress_bar=True)
+        self.visited = []
+        self.inner_graph_started = []
+        self.inner_graph_ended = []
 
     def testing_visit(self, node: FreExNode):
         self.visited.append(node.id)
+
+    def hook_start_graph_node(self, gn: GraphNode):
+        self.inner_graph_started.append(gn.name)
+
+    def hook_end_graph_node(self, gn: GraphNode):
+        self.inner_graph_ended.append(gn.name)
 
 
 def test_make_exec_graph():
@@ -98,3 +115,60 @@ def test_visitation(valid_basic_execution_graph):
     assert v.visited[2].startswith("id4_")
     assert v.visited[3].startswith("id3_")
     assert v.visited[4].startswith("id5_")
+
+
+def test_graph_node(valid_basic_execution_graph):
+    #
+    #                ida
+    #                 |
+    #                idb
+    #              /  |
+    #          idd    |
+    #        /  |  \  |
+    #      idc  |   GRAPH  ==> valid_basic_execution_graph
+    #           |  /
+    #          ide
+
+    execution_graph = FreExGraph()
+    ida = f"ida_{uuid.uuid4()}"
+    idb = f"idb_{uuid.uuid4()}"
+    idc = f"idc_{uuid.uuid4()}"
+    id_graph = f"idg_{uuid.uuid4()}"
+    idd = f"idd_{uuid.uuid4()}"
+    ide = f"ide_{uuid.uuid4()}"
+
+    execution_graph.add_node(ida, NodeForTest(name="ida"))
+    execution_graph.add_node(idb, NodeForTest(name="idb", parents={ida}))
+    execution_graph.add_node(idd, NodeForTest(name="idd", parents={idb}))
+    execution_graph.add_node(id_graph, GraphNode(name="GRAPH", parents={idb, idd}, graph=valid_basic_execution_graph))
+    execution_graph.add_node(idc, NodeForTest(name="idc", parents={idd}))
+    execution_graph.add_node(ide, NodeForTest(name="ide", parents={idd, id_graph}))
+
+    v = VisitationForTesting()
+    v.visit(execution_graph.root())
+
+    assert len(v.visited) == 10
+    assert v.visited[0].startswith("ida_")
+    assert execution_graph.get_node(ida).depth == 1
+    assert v.visited[1].startswith("idb_")
+    assert execution_graph.get_node(idb).depth == 2
+    assert v.visited[2].startswith("idd_")
+    assert execution_graph.get_node(idd).depth == 3
+
+    assert v.visited[3].startswith("idc_")
+
+    assert execution_graph.get_node(idc).depth == 4
+    assert execution_graph.get_node(id_graph).depth == 4
+
+    assert v.visited[4].startswith("id1_")
+    assert v.visited[5].startswith("id2_")
+    assert v.visited[6].startswith("id4_")
+    assert v.visited[7].startswith("id3_")
+    assert v.visited[8].startswith("id5_")
+
+    assert v.visited[9].startswith("ide_")
+    assert execution_graph.get_node(ide).depth == 5
+
+    assert len(v.inner_graph_started) == 1
+    assert v.inner_graph_started[0] == "GRAPH"
+    assert v.inner_graph_started == v.inner_graph_ended

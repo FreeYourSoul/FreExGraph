@@ -28,7 +28,7 @@ import uuid
 from freexgraph import FreExGraph, FreExNode
 
 
-class TestingNode(FreExNode):
+class NodeForTest(FreExNode):
     def accept(self, visitor: "AbstractVisitor") -> bool:
         visitor.testing_visit(self)
         return FreExNode.accept(self, visitor)
@@ -53,9 +53,9 @@ def valid_basic_execution_graph():
     id4 = f"id4_{uuid.uuid4()}"
     id5 = f"id5_{uuid.uuid4()}"
 
-    execution_graph.add_node(id1, TestingNode(name="id1"))
-    execution_graph.add_node(id2, TestingNode(name="id2", parents={id1}))
-    execution_graph.add_node(id4, TestingNode(name="id4", parents={id2}))
-    execution_graph.add_node(id3, TestingNode(name="id3", parents={id2, id4}))
-    execution_graph.add_node(id5, TestingNode(name="id5", parents={id4, id3}))
+    execution_graph.add_node(id1, NodeForTest(name="id1"))
+    execution_graph.add_node(id2, NodeForTest(name="id2", parents={id1}))
+    execution_graph.add_node(id4, NodeForTest(name="id4", parents={id2}))
+    execution_graph.add_node(id3, NodeForTest(name="id3", parents={id2, id4}))
+    execution_graph.add_node(id5, NodeForTest(name="id5", parents={id4, id3}))
     yield execution_graph

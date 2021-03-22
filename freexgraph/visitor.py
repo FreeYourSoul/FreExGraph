@@ -27,7 +27,7 @@ from typing import List, Tuple, Any
 import networkx as nx
 from tqdm import tqdm
 
-from freexgraph.freexgraph import FreExNode, BundleDependencyNode
+from freexgraph.freexgraph import FreExNode, GraphNode
 
 
 @contextmanager
@@ -46,7 +46,7 @@ def no_progress(**_):
 
 
 def _is_node_ignored(node: Any) -> bool:
-    return isinstance(node, BundleDependencyNode)
+    return False
 
 
 def _get_len(sorted_node_list: List[Tuple], ref_graph: nx.DiGraph, with_progress_bar: bool) -> int:
@@ -86,8 +86,25 @@ class AbstractVisitor:
                     return False
                 pbar.set_postfix({'node': node_id})
                 pbar.update()
-
         return True
+
+    def hook_start_graph_node(self, gn: GraphNode):
+        """ Hook to implement in order to do an action at the start of a graph node
+        :param gn: graph node started
+        """
+        pass
+
+    def hook_end_graph_node(self, gn: GraphNode):
+        """ Hook to implement in order to do an action at the start of a graph node
+        :param gn: graph node that finished
+        """
+        pass
+
+    def hook_start(self):
+        pass
+
+    def hook_end(self):
+        pass
 
 
 class VisitorComposer:

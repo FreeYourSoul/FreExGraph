@@ -20,6 +20,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import uuid
 
 from freexgraph.standard_visitor import ValidateGraphIntegrity
 
@@ -32,3 +33,5 @@ class ValidationTestingVisitor(ValidateGraphIntegrity):
 def test_validation_visitor_simple(valid_basic_execution_graph):
     v = ValidationTestingVisitor()
     v.visit(valid_basic_execution_graph.root())
+
+

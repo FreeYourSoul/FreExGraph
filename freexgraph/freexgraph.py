@@ -90,24 +90,20 @@ class RootNode(FreExNode):
 
 
 class GraphNode(FreExNode):
-    """Class representing a node that contains another graph"""
+    """Class representing a node that contains another graph, visitation on such graph go through the inner graph """
 
-    _graph: "FreExGraph"
+    _graph_ex: "FreExGraph"
 
-    def __init__(self, graph: "FreExGraph"):
-        super().__init__(graph_ref=self._graph._graph)
-        self._graph = graph
+    def __init__(self, name: str, *, graph: "FreExGraph", parents: Set[str] = None):
+        super().__init__(name=name, parents=parents, graph_ref=graph._graph)
+        self._graph_ex = graph
 
     def accept(self, visitor: "AbstractVisitor") -> bool:
-        return visitor.visit(self._graph.root())
-
-
-class BundleDependencyNode(FreExNode):
-    """Class representing a dependency node, this node shouldn't be executed and will be ignored by visitors"""
-
-    # ignored in visitation
-    def accept(self, _) -> bool:
-        return True
+        visitor.hook_start_graph_node(self)
+        not_interrupted = visitor.visit(self._graph_ex.root())
+        if not_interrupted:
+            visitor.hook_end_graph_node(self)
+        return not_interrupted
 
 
 class FreExGraph:
@@ -210,17 +206,6 @@ class FreExGraph:
         node_to_fork = self.get_node(node_id)
         node_to_fork.fork_id = fork_id
         fork_node(node_to_fork)
-
-    def bundle_nodes(self, max_limit: int) -> int:
-        """ bundle the whole graph dependencies with fake node in order to ensure that no node has more than the
-        provided maximum number of dependencies or successor
-
-        :param max_limit: limit at which a bundle dep is generated
-        :return: number of time bundle the bundle ticked
-        """
-        assert max_limit > 10, "limit for the bundle has to be superior to 10"
-        tick = 0
-        return tick
 
     def root(self) -> FreExNode:
         """:return: root node of the graph"""
