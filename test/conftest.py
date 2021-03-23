@@ -22,16 +22,16 @@
 # SOFTWARE.
 
 import pytest
-
 import uuid
+
+from typing import Tuple, List
 
 from freexgraph import FreExGraph, FreExNode
 
 
 class NodeForTest(FreExNode):
     def accept(self, visitor: "AbstractVisitor") -> bool:
-        visitor.testing_visit(self)
-        return FreExNode.accept(self, visitor)
+        return visitor.testing_visit(self)
 
 
 @pytest.fixture(scope="function")
@@ -58,4 +58,45 @@ def valid_basic_execution_graph():
     execution_graph.add_node(id4, NodeForTest(name="id4", parents={id2}))
     execution_graph.add_node(id3, NodeForTest(name="id3", parents={id2, id4}))
     execution_graph.add_node(id5, NodeForTest(name="id5", parents={id4, id3}))
+    yield execution_graph
+
+
+def unordered_node_list_for_complex_graph() -> List[Tuple[str, FreExNode]]:
+    #
+    #            A                      B
+    #         /     \                 /  |
+    #        C       D              E    |
+    #                 \              \   |
+    #                  F .______,    G   |
+    #               /  |  \     \   /    |
+    #             H    I   J     `,K.    |
+    #                     /,_____/   \   |
+    #                    L             M
+    #
+    return [
+        NodeForTest("C", uid="C", parents={"A"}),
+        NodeForTest("K", uid="K", parents={"G"}),
+        NodeForTest("M", uid="M", parents={"K", "B"}),
+        NodeForTest("D", uid="D", parents={"A"}),
+        NodeForTest("J", uid="J", parents={"F"}),
+        NodeForTest("A", uid="A"),
+        NodeForTest("E", uid="E", parents={"B"}),
+        NodeForTest("L", uid="L", parents={"J", "K"}),
+        NodeForTest("H", uid="H", parents={"F"}),
+        NodeForTest("F", uid="F", parents={"D", "E"}),
+        NodeForTest("G", uid="G", parents={"E"}),
+        NodeForTest("B", uid="B"),
+        NodeForTest("I", uid="I", parents={"F"}),
+    ]
+
+
+@pytest.fixture(scope="function")
+def node_list_complex_graph():
+    yield unordered_node_list_for_complex_graph()
+
+
+@pytest.fixture(scope="function")
+def valid_complex_graph():
+    execution_graph = FreExGraph()
+    execution_graph.add_nodes(unordered_node_list_for_complex_graph())
     yield execution_graph

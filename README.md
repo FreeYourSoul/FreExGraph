@@ -26,8 +26,11 @@ from freeexgraph import FreExNode, AbstractVisitor
 
 class MyCustomNode(FreExNode):
   def accept(self, visitor: AbstractVisitor) -> bool:
-  """ An accept method that will be called for each node visited by the visitor which is passed as parameter."""   
-      ...    
+    """ 
+    An accept method that will be called for each node 
+    visited by the visitor which is passed as parameter.
+    """   
+    ...    
 
 ```
 An accept method is provided that return a boolean, if False is returned through the accept method, the visitation stop at that node.
@@ -73,7 +76,8 @@ class MyBaseVisitor(AbstractVisitor):
     return self.visit_default(node)      
 
 
-# My actual Visitor implementation, this one just need a specific action to be made on MyNodeGamma node type. The rest has a default behaviour.
+# My actual Visitor implementation, this one just need a specific action 
+# to be made on MyNodeGamma node type. The rest has a default behaviour.
 
 class CustomVisitor(MyBaseVisitor)
   def visit_default(self, node: FreExNode):
@@ -92,29 +96,65 @@ class CustomVisitor(MyBaseVisitor)
 
 After creating node types (see above), we can create an execution graph that will use those nodes.
 
-< TODO >
+**add_node:**
+
+**add_nodes:**
 
 ### Graph Node
 
-It is possible to embbed a graph into another thanks to a graph node. Any visitation going through a graph node is going to be propagated to the inner graph.
+It is possible to embed a graph into another thanks to a graph node. Any visitation going through a graph node is going to be propagated to the inner graph.
 
 < TODO >
 
 ### Standard Visitor provided by FreExGraph
 
-All standard visitor are present in the standard_visitor module.
+A set of visitor is provided in order to do simple actions. Those are called standard visitor.
+
+All standard visitors are present in the standard_visitor module and exposed through freexgraph import.
+For all example below, we assume a graph as follows:
+```shell
+# we assume an object `graph_above` of type FreExGraph that represent a  
+# graph as follow
+#
+#                id1
+#                 |
+#                id2
+#              /  |
+#          id3    |
+#        /  |  \  |
+#      id5  |   id4 
+#           |  /
+#          id6
+```
 
 * **FindFirstVisitor**: A visitor that will find the first node of the execution graph that match a given predicate:
 ```python
+from freexgraph.standard_visitor import FindFirstVisitor 
 
+v = FindFirstVisitor(lambda node: node.name.startswith("id3"))
+v.visit(graph_above.root())
+assert v.found()
+assert v.result.name == "id3"
 ```
 
 * **FindAllVisitor**: A visitor that will find all the node of the execution graph that match a given predicate:
 ```python
+from freexgraph.standard_visitor import FindAllVisitor
 
+v = FindAllVisitor(lambda node: node.name[0:3] > "id3")
+v.visit(graph_above.root())
+assert v.count() == 3
+assert len(v.results) == 3
+```
 
 * **ValidateGraphIntegrity**: A visitor that validate that the graph is not illegal (every parents of every node exist in the graph, no infinite recursion of dependency etc...).
 ```python
+from freexgraph.standard_visitor import ValidateGraphIntegrity
+
+v = ValidateGraphIntegrity()
+
+# visitation does assertion to verify if the graph is correct
+v.visit(graph_above.root())
 ```
 
 ## Installation
@@ -122,6 +162,7 @@ All standard visitor are present in the standard_visitor module.
 * Via pip
 ```shell
 pip install .
+# uninstall with `pip uninstall freexgraph`
 ```
 
 * Via nix: A nix recipe is provided in order to create a local environment or installation.
@@ -129,6 +170,6 @@ pip install .
 # build freexgraph
 nix-build . -A freexgraph
 
-# create a local environement to use freexgraph
+# create a local environment to use freexgraph
 nix-build . -A build_env
 ```

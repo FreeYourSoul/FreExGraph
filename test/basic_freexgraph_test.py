@@ -21,18 +21,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import pytest
 import uuid
+
 from typing import List, Optional
 
 from freexgraph.freexgraph import GraphNode
-
 from freexgraph import AbstractVisitor, FreExNode, FreExGraph
-
-
-class NodeForTest(FreExNode):
-    def accept(self, visitor: "AbstractVisitor") -> bool:
-        visitor.testing_visit(self)
-        return FreExNode.accept(self, visitor)
 
 
 class VisitationForTesting(AbstractVisitor):
@@ -48,12 +43,18 @@ class VisitationForTesting(AbstractVisitor):
 
     def testing_visit(self, node: FreExNode):
         self.visited.append(node.id)
+        return True
 
     def hook_start_graph_node(self, gn: GraphNode):
         self.inner_graph_started.append(gn.name)
 
     def hook_end_graph_node(self, gn: GraphNode):
         self.inner_graph_ended.append(gn.name)
+
+
+class NodeForTest(FreExNode):
+    def accept(self, visitor: "AbstractVisitor") -> bool:
+        return visitor.testing_visit(self)
 
 
 def test_make_exec_graph():
@@ -140,7 +141,10 @@ def test_graph_node(valid_basic_execution_graph):
     execution_graph.add_node(ida, NodeForTest(name="ida"))
     execution_graph.add_node(idb, NodeForTest(name="idb", parents={ida}))
     execution_graph.add_node(idd, NodeForTest(name="idd", parents={idb}))
-    execution_graph.add_node(id_graph, GraphNode(name="GRAPH", parents={idb, idd}, graph=valid_basic_execution_graph))
+    execution_graph.add_node(
+        id_graph,
+        GraphNode(name="GRAPH", parents={idb, idd}, graph=valid_basic_execution_graph),
+    )
     execution_graph.add_node(idc, NodeForTest(name="idc", parents={idd}))
     execution_graph.add_node(ide, NodeForTest(name="ide", parents={idd, id_graph}))
 
@@ -172,3 +176,58 @@ def test_graph_node(valid_basic_execution_graph):
     assert len(v.inner_graph_started) == 1
     assert v.inner_graph_started[0] == "GRAPH"
     assert v.inner_graph_started == v.inner_graph_ended
+
+
+def test_add_nodes(node_list_complex_graph):
+    execution_graph = FreExGraph()
+    execution_graph.add_nodes(node_list_complex_graph)
+
+    v = VisitationForTesting()
+    v.visit(execution_graph.root())
+
+    assert len(v.visited) == 13
+
+
+def test_add_nodes_not_properly_connected_nodes(node_list_complex_graph):
+    node_list_complex_graph.append(
+        NodeForTest("X", uid="X", parents={"NOT_EXISTING"})
+    )
+    execution_graph = FreExGraph()
+    with pytest.raises(AssertionError):
+        execution_graph.add_nodes(node_list_complex_graph)
+
+
+def test_add_nodes_multiple_nodes_same_id(node_list_complex_graph):
+    # K is already in graph
+    assert "K" in [n.id for n in node_list_complex_graph]
+
+    # adding another K fail
+    node_list_complex_graph.append(
+        NodeForTest("X", uid="K")
+    )
+    execution_graph = FreExGraph()
+    with pytest.raises(AssertionError):
+        execution_graph.add_nodes(node_list_complex_graph)
+
+
+def test_add_nodes_on_already_created_graph(valid_complex_graph):
+    to_add = [
+        NodeForTest("N", uid="N", parents={"A", "K"}),
+        NodeForTest("O", uid="O", parents={"B", "I", "J"}),
+        NodeForTest("P", uid="P", parents={"N", "C"})
+    ]
+
+    valid_complex_graph.add_nodes(to_add)
+
+    v = VisitationForTesting()
+    v.visit(valid_complex_graph.root())
+
+    assert len(v.visited) == 16
+
+
+def test_add_not_linked_nodes_on_already_created_graph(valid_complex_graph):
+    to_add = [
+        NodeForTest("X", uid="X", parents={"A", "NOT_EXISTING"}),
+    ]
+    with pytest.raises(AssertionError):
+        valid_complex_graph.add_nodes(to_add)

@@ -37,10 +37,11 @@ class FreExNode:
     parents: Set[str]
     """ Parents of the node to add """
 
-    def __init__(self, name: str = "", *, parents: Set[str] = None, graph_ref: nx.DiGraph = None):
+    def __init__(self, name: str = "", *, parents: Set[str] = None, graph_ref: nx.DiGraph = None, uid: str = None):
         self.name = name
         self.parents = parents or set()
         self._graph_ref = graph_ref
+        self._id = uid
 
     # == PRIVATE ==
     _id: str = None
@@ -48,10 +49,17 @@ class FreExNode:
     _graph_ref: nx.DiGraph = None
     _depth: int = 0
 
-    def accept(self, visitor: "AbstractVisitor") -> bool:
+    def base_accept(self, visitor: "AbstractVisitor") -> bool:
+        """ do not override
+        Internal accept making the dispatch with standard visitors
+        """
         from freexgraph.standard_visitor import is_standard_visitor
         if is_standard_visitor(visitor):
             return visitor.visit_standard(self)
+        return self.accept(visitor)
+
+    def accept(self, visitor: "AbstractVisitor") -> bool:
+        """ Accept to be overridden by custom Nodes"""
         return True
 
     @property
@@ -117,7 +125,7 @@ class FreExGraph:
         root._id = root_node
         self._graph.add_node(root_node, content=root)
 
-    def add_nodes(self, nodes: List[Tuple[str, Union[FreExNode, GraphNode]]]):
+    def add_nodes(self, nodes: List[Union[FreExNode, GraphNode]]):
         """ Add all the provided nodes in the execution graph.
         The ordering of the node creation can be tedious, as it is required that every node parents already exists to be
         added. This ordering will be inferred making in this method/ it easier to create nodes, and then add them in the
@@ -125,14 +133,29 @@ class FreExGraph:
 
         If such inference is impossible, an exception is thrown because of an impossibility to create the graph.
 
-        :param nodes: list of nodes to add in the graph
+        :param nodes: list of nodes to add in the graph, those nodes has to have the id field set
         """
+        nodes_sorted: List[Union[FreExNode, GraphNode]] = [n for n in nodes if len(n.parents) == 0]
 
+        def all_parents_already_in_list(n: Union[FreExNode, GraphNode]) -> bool:
+            node_sorted_id = set(self._graph)
+            node_sorted_id.update({s.id for s in nodes_sorted})
+            if n.id not in node_sorted_id:
+                return n.parents.issubset(node_sorted_id)
+            return False
+
+        while len(nodes_sorted) < len(nodes):
+            to_add = [n for n in nodes if all_parents_already_in_list(n)]
+            assert len(to_add) > 0, "provided nodes are not all linked together"
+            nodes_sorted.extend(to_add)
+
+        for node in nodes_sorted:
+            self.add_node(node.id, node)
 
     def add_node(self, node_id: str, node_content: Union[FreExNode, GraphNode]) -> None:
         """ Add a node in the graph
 
-        :param node_id: id of the node to add
+        :param node_id: id of the node to add, id field of the node is ignored, this one is taken
         :param node_content: content of the node, can be a normal content (FreExNode derived) or a node to be joined by
         another graph later (JoinNode derived)
         """

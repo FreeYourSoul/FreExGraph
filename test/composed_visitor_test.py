@@ -21,11 +21,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""
-Module to manipulate an execution graph
-"""
+def test_simple_composition_visitor_before_action():
+    ...
 
-from freexgraph.freexgraph import FreExGraph, FreExNode
-from freexgraph.visitor import AbstractVisitor
 
-import freexgraph.standard_visitor
+def test_simple_composition_visitor_action_after():
+    ...
+
+
+def test_simple_composition_visitor_before_after():
+    ...
+
+
+def test_composition_multi_action():
+    ...
+
+
+def test_composition_before_multi_action():
+    ...
+
+
+def test_complete_composition():
+    ...

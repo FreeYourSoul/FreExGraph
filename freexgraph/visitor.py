@@ -82,7 +82,7 @@ class AbstractVisitor:
             pbar.set_description(f"Processing Visitor {type(self).__name__}")
 
             for node_id in sorted_node_list:
-                if not root.graph_ref.nodes[node_id]["content"].accept(self):
+                if not root.graph_ref.nodes[node_id]["content"].base_accept(self):
                     return False
                 pbar.set_postfix({'node': node_id})
                 pbar.update()
@@ -167,7 +167,7 @@ class VisitorComposer:
             for node_id in sorted_node_list:
                 # do the visitation for the node on each action visitor
                 for action_visitor in self._action_composed:
-                    if not root.graph_ref.nodes[node_id].accept(action_visitor):
+                    if not root.graph_ref.nodes[node_id].base_accept(action_visitor):
                         return False
 
                 pbar.set_postfix({'node': node_id})

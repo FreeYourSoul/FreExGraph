@@ -26,37 +26,20 @@ from freexgraph.standard_visitor import ValidateGraphIntegrity, FindFirstVisitor
 
 
 def test_validation_visitor_simple(valid_basic_execution_graph):
-    class ValidationTestingVisitor(ValidateGraphIntegrity):
-        def testing_visit(self, _):
-            ...
-
-    v = ValidationTestingVisitor()
+    v = ValidateGraphIntegrity()
     v.visit(valid_basic_execution_graph.root())
 
 
 def test_find_visitor(valid_basic_execution_graph):
-    class FindTestingVisitor(FindFirstVisitor):
-        iteration_count: int = 0
-
-        def testing_visit(self, _):
-            self.iteration_count += 1
-
-    v = FindTestingVisitor(lambda node: node.name.startswith("id3"))
+    v = FindFirstVisitor(lambda node: node.name.startswith("id3"))
     v.visit(valid_basic_execution_graph.root())
     assert v.found()
     assert v.result.name == "id3"
     assert len(v.result.parents) == 2
-    # check that all the visitation has not been done as it found in the middle
-    # but full size of the graph is 5
-    assert v.iteration_count == 4
 
 
 def test_count_visitor(valid_basic_execution_graph):
-    class CountTestingVisitor(FindAllVisitor):
-        def testing_visit(self, _):
-            ...
-
-    v = CountTestingVisitor(lambda node: node.name[0:3] > "id3")
+    v = FindAllVisitor(lambda node: node.name[0:3] > "id3")
     v.visit(valid_basic_execution_graph.root())
     assert v.count() == 2
     assert v.results[0].name == "id4"
