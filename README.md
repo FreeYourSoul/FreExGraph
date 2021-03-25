@@ -1,3 +1,4 @@
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/f53ebd9c78064337b2f4ef8edc029620)](https://app.codacy.com/gh/FreeYourSoul/FreExGraph?utm_source=github.com&utm_medium=referral&utm_content=FreeYourSoul/FreExGraph&utm_campaign=Badge_Grade_Settings)
 [![Build Status](https://travis-ci.com/FreeYourSoul/FreExGraph.svg?branch=main)](https://travis-ci.com/FreeYourSoul/FreExGraph)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/e5d3ee2861954023afce6f161a9d6b64)](https://www.codacy.com/gh/FreeYourSoul/FreExGraph/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=FreeYourSoul/FreExGraph&amp;utm_campaign=Badge_Grade)
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/e5d3ee2861954023afce6f161a9d6b64)](https://www.codacy.com/gh/FreeYourSoul/FreExGraph/dashboard?utm_source=github.com&utm_medium=referral&utm_content=FreeYourSoul/FreExGraph&utm_campaign=Badge_Coverage)
