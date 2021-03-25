@@ -11,18 +11,31 @@ It provide:
 * an easy to use interface to make a graph of execution (of custom made node).
 * an easy way to Visit this graph in order to execute action on them.
 
+## Content table
+
+* [Intro Node](#node-creation-and-visitation)  
+  * [Template Example](#template-example)
+  * [Graph creation](#graph-creation)
+  * [Graph Node](#graph-node) 
+  * [Fork mechanism](#fork) 
+* [Visitors](#visitors)
+    * [Visitor hook](#abstract-visitor-hooks)
+    * [Standard visitors](#standard-visitor-provided-by-freexgraph)
+* [Installation](#installation)
+
 ## Dependencies
 
-* networkx : FreExGraph is a layer on top of networkx 
-* tqdm : provide a nice way to display progression on visitation
+* Python >= 3.6
+* [networkx](https://networkx.org/) : FreExGraph is a layer on top of networkx 
+* [tqdm](https://github.com/tqdm/tqdm) : provide a nice way to display progression on visitation
 
-## Documentation
+# Documentation
 
 The goal of this library is to provide a standardized way to represent an execution graph and to visit it via visitor. Some visitors are provided by FreExGraph but the more important thing is the ability to very easily provide its own visitor and it's own node type.
 
 > **Convention**: by convention : every method with their name ending with an underscore ' _ ', the method is for internal use only and should not be used directly by the user. (example : AbstractVisitor.apply_visitation_ , FreExNode.apply_accept_ ) 
 
-### Node creation and visitation
+## Node creation and visitation
 
 In order to use FreExGraph properly, it is required to provide your own node type. A node is a class that inherit from FreExNode class. It provides the following interface:
 ```python
@@ -40,11 +53,11 @@ class MyCustomNode(FreExNode):
 An accept method is provided that return a boolean, if False is returned through the accept method, the visitation stop at that node.
 It is important to know that the default behaviour of FreExNode in case of visitation from a visitor is to be ignored. Only standard visitor would work on a raw FreExNode. It emphasis how important it is to provide your node implementation.
 
-### Quick Start example
+### Template Example
 
 It is possible to call any method from the visitor specific to the current node. But as your node has to be able to work with any visitor you will provide. It is recommended to implement your own base class for the Visitor pattern. This base visitor would for example contains all node specific method you have (as many as you have node types). All those method would redirect to a default behavior if your custom visitor doesn't contains code specific to a node.
 
-Here is a complete example of how you should create an easily extensible visitor for your nodes:
+Here is a complete example that can be used as a good start to show how you should create an easily extensible visitor for your nodes:
 
 ```python
 
@@ -108,6 +121,13 @@ After creating node types (see above), we can create an execution graph that wil
 **add_nodes:**
 
 
+### Graph Node
+
+It is possible to embed a graph into another thanks to a graph node. Any visitation going through a graph node is going to be propagated to the inner graph.
+
+< TODO >
+
+
 ### Fork
 
 FreExGraph provide a fork mechanism. It provides an easy way to duplicate a graph from a given node until the end of the graph (or to a specific node that would be used as a join: useful to implement).
@@ -154,6 +174,8 @@ It is also possible to provide a join node. It will be a node used as join for t
 
 Join is do-able by adding the
 
+## Visitors
+
 ### Abstract Visitor hooks
 
 Abstract visitor provide some default hooks that can be overridden from custom visitors in order to implement more complex logic depending on the graph visit.
@@ -170,12 +192,6 @@ To do so, in the `__init__` of your custom visitor, use the method `register_cus
 ```python
 # TODO
 ```
-
-### Graph Node
-
-It is possible to embed a graph into another thanks to a graph node. Any visitation going through a graph node is going to be propagated to the inner graph.
-
-< TODO >
 
 ### Standard Visitor provided by FreExGraph
 
