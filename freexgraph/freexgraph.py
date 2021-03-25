@@ -21,11 +21,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional, Union, Set, List
+from typing import Optional, Union, Set, List, Any
 
 import networkx as nx
 
+
 root_node = "::root_node::"
+
+
+AnyVisitor = Any
+"""Any visitor is a class that is inheriting from AbstractVisitor"""
 
 
 class FreExNode:
@@ -53,7 +58,7 @@ class FreExNode:
     _graph_ref: nx.DiGraph = None
     _depth: int = 0
 
-    def apply_accept_(self, visitor: "AbstractVisitor") -> bool:
+    def apply_accept_(self, visitor: AnyVisitor) -> bool:
         """do not override. Internal accept making the dispatch with standard visitors"""
         from freexgraph.standard_visitor import is_standard_visitor
 
@@ -61,7 +66,7 @@ class FreExNode:
             return visitor.visit_standard(self)
         return self.accept(visitor)
 
-    def accept(self, visitor: "AbstractVisitor") -> bool:
+    def accept(self, visitor: AnyVisitor) -> bool:
         """Accept to be overridden by custom Nodes"""
         return True
 
@@ -108,7 +113,7 @@ class GraphNode(FreExNode):
         super().__init__(uid=uid, parents=parents, graph_ref=graph._graph)
         self._graph_ex = graph
 
-    def accept(self, visitor: "AbstractVisitor") -> bool:
+    def accept(self, visitor: AnyVisitor) -> bool:
         visitor.hook_start_graph_node(self)
         not_interrupted = visitor.apply_visitation_(self._graph_ex.root)
         if not_interrupted:

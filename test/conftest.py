@@ -26,11 +26,11 @@ import uuid
 
 from typing import List
 
-from freexgraph import FreExGraph, FreExNode
+from freexgraph import FreExGraph, FreExNode, AnyVisitor
 
 
 class NodeForTest(FreExNode):
-    def accept(self, visitor: "AbstractVisitor") -> bool:
+    def accept(self, visitor: AnyVisitor) -> bool:
         return visitor.testing_visit(self)
 
 
