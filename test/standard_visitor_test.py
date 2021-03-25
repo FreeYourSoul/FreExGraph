@@ -22,25 +22,41 @@
 # SOFTWARE.
 import uuid
 
-from freexgraph.standard_visitor import ValidateGraphIntegrity, FindFirstVisitor, FindAllVisitor
+from freexgraph.standard_visitor import (
+    ValidateGraphIntegrity,
+    FindFirstVisitor,
+    FindAllVisitor,
+)
 
 
 def test_validation_visitor_simple(valid_basic_execution_graph):
     v = ValidateGraphIntegrity()
-    v.visit(valid_basic_execution_graph.root())
+    v.visit(valid_basic_execution_graph.root)
 
 
 def test_find_visitor(valid_basic_execution_graph):
-    v = FindFirstVisitor(lambda node: node.name.startswith("id3"))
-    v.visit(valid_basic_execution_graph.root())
+    v = FindFirstVisitor(lambda node: node.id.startswith("id3"))
+    v.visit(valid_basic_execution_graph.root)
     assert v.found()
-    assert v.result.name == "id3"
+    assert v.result.id.startswith("id3")
+    assert len(v.result.parents) == 2
+    # test re-use
+    v.visit(valid_basic_execution_graph.root)
+    assert v.found()
+    assert v.result.id.startswith("id3")
     assert len(v.result.parents) == 2
 
 
 def test_count_visitor(valid_basic_execution_graph):
-    v = FindAllVisitor(lambda node: node.name[0:3] > "id3")
-    v.visit(valid_basic_execution_graph.root())
+    v = FindAllVisitor(lambda node: node.id[0:3] > "id3")
+    v.visit(valid_basic_execution_graph.root)
     assert v.count() == 2
-    assert v.results[0].name == "id4"
-    assert v.results[1].name == "id5"
+    assert v.results[0].id.startswith("id4")
+    assert v.results[1].id.startswith("id5")
+    # test re-use
+    v = FindAllVisitor(lambda node: node.id[0:3] > "id3")
+    v.visit(valid_basic_execution_graph.root)
+    assert v.count() == 2
+    assert v.results[0].id.startswith("id4")
+    assert v.results[1].id.startswith("id5")
+

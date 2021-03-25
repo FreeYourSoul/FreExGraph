@@ -30,14 +30,14 @@ from freexgraph.freexgraph import root_node
 
 
 class FindFirstVisitor(AbstractVisitor):
-    """ Find the first occurrence of a node that follow the given predicate
-    result value is set to a reference to the value found.
+    """Find the first occurrence of a node that follow the given predicate
 
+    result value is set to a reference to the value found.
     This is a mutable visitor : If a modification is to be done on the found node, it can be done in the predicate
     """
 
     result: Optional[FreExNode] = None
-    """ reference to the node found after visitation that follow the predicate, stay None if none found """
+    """reference to the node found after visitation that follow the predicate, stay None if none found """
 
     _predicate: Callable
 
@@ -56,13 +56,16 @@ class FindFirstVisitor(AbstractVisitor):
             return False
         return True
 
+    def hook_start(self):
+        self.result = None
+
     def found(self) -> bool:
         return self.result is not None
 
 
 class FindAllVisitor(AbstractVisitor):
     results: List[FreExNode]
-    """ reference list of nodes found after visitation that follow the predicate, stay None if none found """
+    """reference list of nodes found after visitation that follow the predicate, stay None if none found """
 
     _predicate: Callable
 
@@ -76,21 +79,24 @@ class FindAllVisitor(AbstractVisitor):
             self.results.append(node)
         return True
 
+    def hook_start(self):
+        self.results = []
+
     def count(self) -> int:
         return len(self.results)
 
 
 class ValidateGraphIntegrity(AbstractVisitor):
-    """ Validate the integrity of the graph.
+    """Validate the integrity of the graph.
 
-        All the data are added if the API is used correctly, but if any bypass has been used (which you should never do)
-        This visitor will help figuring out what is the error.
+    All the data are added if the API is used correctly, but if any bypass has been used (which you should never do)
+    This visitor will help figuring out what is the error.
 
-        * Check that each and every parents exists in the graph
-        * Check all node has a graph_ref assigned
-        * Check all node has an id set
-        * Check all node has a valid depth
-        * Check that the graph doesn't do a cycle (cyclic graph) Impossible by design, parent are checked at node add
+    * Check that each and every parents exists in the graph
+    * Check all node has a graph_ref assigned
+    * Check all node has an id set
+    * Check all node has a valid depth
+    * Check that the graph doesn't do a cycle (cyclic graph) Impossible by design, parent are checked at node add
     """
 
     _first_check = True
@@ -100,26 +106,41 @@ class ValidateGraphIntegrity(AbstractVisitor):
         if self._first_check:
             try:
                 # impossible by design ( as we check if parents exists before adding them )
-                assert len(list(nx.find_cycle(node.graph_ref))) == 0, f"Error on graph : Cycle found"
+                assert (
+                    len(list(nx.find_cycle(node.graph_ref))) == 0
+                ), "Error on graph : Cycle found"
             except:
                 pass
             self._first_check = False
 
-        assert isinstance(node, FreExNode), \
-            f"Error on node type {type(node).__name__}. Every node in the graph should be deriving from FreExNode"
+        assert isinstance(
+            node, FreExNode
+        ), f"Error on node type {type(node).__name__}. Every node in the graph should be deriving from FreExNode"
 
         assert node.id, f"Error on node {node}, doesn't contains id"
-        assert node.id == root_node or len(node.parents) > 0, \
-            f"Internal library error: {node}, doesn't have parent (root should at least be added)"
+        assert (
+            node.id == root_node or len(node.parents) > 0
+        ), f"Internal library error: {node}, doesn't have parent (root should at least be added)"
 
-        assert node.graph_ref is not None, f"Error on node {node}, doesn't contains a ref_graph"
-        assert node.depth >= 0, f"Internal library error: {node}, impossible depth (should be positive)"
+        assert (
+            node.graph_ref is not None
+        ), f"Error on node {node}, doesn't contains a ref_graph"
+        assert (
+            node.depth >= 0
+        ), f"Internal library error: {node}, impossible depth (should be positive)"
 
         for p in node.parents:
-            assert node.graph_ref.has_node(p), f"Error on node {node}, parent {p} doesn't exist in the graph"
+            assert node.graph_ref.has_node(
+                p
+            ), f"Error on node {node}, parent {p} doesn't exist in the graph"
 
         return True
 
 
 def is_standard_visitor(visitor_instance):
-    return any([isinstance(visitor_instance, c) for c in [ValidateGraphIntegrity, FindAllVisitor, FindFirstVisitor]])
+    return any(
+        [
+            isinstance(visitor_instance, c)
+            for c in [ValidateGraphIntegrity, FindAllVisitor, FindFirstVisitor]
+        ]
+    )
