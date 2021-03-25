@@ -24,7 +24,7 @@
 import pytest
 import uuid
 
-from typing import Tuple, List
+from typing import List
 
 from freexgraph import FreExGraph, FreExNode
 
@@ -38,8 +38,8 @@ class NodeForTest(FreExNode):
 def valid_basic_execution_graph():
     #
     #
-    #     ,_____, id2
-    #  id1         |
+    #     ,_____, id2,______
+    #  id1         |         \
     #              |    ,----- id3
     #              |   /           \
     #              |  /             `___ id5
@@ -53,15 +53,15 @@ def valid_basic_execution_graph():
     id4 = f"id4_{uuid.uuid4()}"
     id5 = f"id5_{uuid.uuid4()}"
 
-    execution_graph.add_node(id1, NodeForTest(name="id1"))
-    execution_graph.add_node(id2, NodeForTest(name="id2", parents={id1}))
-    execution_graph.add_node(id4, NodeForTest(name="id4", parents={id2}))
-    execution_graph.add_node(id3, NodeForTest(name="id3", parents={id2, id4}))
-    execution_graph.add_node(id5, NodeForTest(name="id5", parents={id4, id3}))
+    execution_graph.add_node(NodeForTest(id1))
+    execution_graph.add_node(NodeForTest(id2, parents={id1}))
+    execution_graph.add_node(NodeForTest(id4, parents={id2}))
+    execution_graph.add_node(NodeForTest(id3, parents={id2, id4}))
+    execution_graph.add_node(NodeForTest(id5, parents={id4, id3}))
     yield execution_graph
 
 
-def unordered_node_list_for_complex_graph() -> List[Tuple[str, FreExNode]]:
+def unordered_node_list_for_complex_graph() -> List[NodeForTest]:
     #
     #            A                      B
     #         /     \                 /  |
@@ -74,19 +74,19 @@ def unordered_node_list_for_complex_graph() -> List[Tuple[str, FreExNode]]:
     #                    L             M
     #
     return [
-        NodeForTest("C", uid="C", parents={"A"}),
-        NodeForTest("K", uid="K", parents={"G"}),
-        NodeForTest("M", uid="M", parents={"K", "B"}),
-        NodeForTest("D", uid="D", parents={"A"}),
-        NodeForTest("J", uid="J", parents={"F"}),
-        NodeForTest("A", uid="A"),
-        NodeForTest("E", uid="E", parents={"B"}),
-        NodeForTest("L", uid="L", parents={"J", "K"}),
-        NodeForTest("H", uid="H", parents={"F"}),
-        NodeForTest("F", uid="F", parents={"D", "E"}),
-        NodeForTest("G", uid="G", parents={"E"}),
-        NodeForTest("B", uid="B"),
-        NodeForTest("I", uid="I", parents={"F"}),
+        NodeForTest("C", parents={"A"}),
+        NodeForTest("K", parents={"G"}),
+        NodeForTest("M", parents={"K", "B"}),
+        NodeForTest("D", parents={"A"}),
+        NodeForTest("J", parents={"F"}),
+        NodeForTest("A"),
+        NodeForTest("E", parents={"B"}),
+        NodeForTest("L", parents={"J", "K"}),
+        NodeForTest("H", parents={"F"}),
+        NodeForTest("F", parents={"D", "E"}),
+        NodeForTest("G", parents={"E"}),
+        NodeForTest("B"),
+        NodeForTest("I", parents={"F"}),
     ]
 
 

@@ -19,3 +19,7 @@ before_cache:
 
 before_script:
   - sudo mkdir -p /etc/nix && echo 'sandbox = true' | sudo tee /etc/nix/nix.conf
+  - chmod +x report_coverage.sh
+
+after_success:
+  - ./report_coverage.sh

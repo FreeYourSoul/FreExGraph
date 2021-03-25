@@ -1,4 +1,5 @@
-{ lib, python38, python38Packages, nix-gitignore, use_revision ? null }:
+{ curl, lib, python38, python38Packages, nix-gitignore, use_revision ? null
+, report_coverage ? false }:
 
 python38.pkgs.buildPythonPackage rec {
   pname = "freexgraph";
@@ -12,7 +13,7 @@ python38.pkgs.buildPythonPackage rec {
       rev = use_revision;
     };
 
-  checkInputs = [ python38Packages.pytest ];
+  checkInputs = [ python38Packages.pytest python38Packages.coverage curl ];
   propagatedBuildInputs = with python38Packages; [ networkx tqdm ];
 
   doCheck = true;

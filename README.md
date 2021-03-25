@@ -1,4 +1,6 @@
 [![Build Status](https://travis-ci.com/FreeYourSoul/FreExGraph.svg?branch=main)](https://travis-ci.com/FreeYourSoul/FreExGraph)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/e5d3ee2861954023afce6f161a9d6b64)](https://www.codacy.com/gh/FreeYourSoul/FreExGraph/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=FreeYourSoul/FreExGraph&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/e5d3ee2861954023afce6f161a9d6b64)](https://www.codacy.com/gh/FreeYourSoul/FreExGraph/dashboard?utm_source=github.com&utm_medium=referral&utm_content=FreeYourSoul/FreExGraph&utm_campaign=Badge_Coverage)
 [![Scc Count Badge](https://sloc.xyz/github/FreeYourSoul/FreExGraph/)](https://github.com/FreeYourSoul/FreExGraph/)
 [![Scc Count Badge](https://sloc.xyz/github/FreeYourSoul/FreExGraph/?category=code)](https://github.com/FreeYourSoul/FreExGraph/)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/FreeYourSoul/FreExGraph/master/LICENSE)
@@ -17,6 +19,8 @@ It provide:
 ## Documentation
 
 The goal of this library is to provide a standardized way to represent an execution graph and to visit it via visitor. Some visitors are provided by FreExGraph but the more important thing is the ability to very easily provide its own visitor and it's own node type.
+
+> **Convention**: by convention : every method with their name ending with an underscore ' _ ', the method is for internal use only and should not be used directly by the user. (example : AbstractVisitor.apply_visitation_ , FreExNode.apply_accept_ ) 
 
 ### Node creation and visitation
 
@@ -100,6 +104,25 @@ After creating node types (see above), we can create an execution graph that wil
 
 **add_nodes:**
 
+> it is important to note that the character ':' is forbidden in node id, as it is used for internal node (fork uniqueness and/or root_node)
+
+### Abstract Visitor hooks
+
+Abstract visitor provide some default hooks that can be overridden from custom visitors in order to implement more complex logic depending on the graph visit.
+* `hook_start()` : This hook is called when the visitation of the graph start
+* `hook_end()` : This hook is called when the visitation of the graph end
+* `hook_fork_started(n: FreExNode, fork_id: str)` : This hook is called when a fork has been entered (when visiting the first node of a fork)
+* `hook_start_graph_node(gn: GraphNode)` : This hook is called when a graphnode recursion start (graph node given as parameter of the hook)
+* `hook_end_graph_node(gn: GraphNode)` : This hook is called when a graphnode visitation end (graph node given as parameter of the hook)
+
+Custom hooks can be implemented if you must trigger a specific action that depend on the business data stored in your node.   
+To do so, in the `__init__` of your custom visitor, use the method `register_custom_hook(predicate: Callable, hook: Callable)` : This method will trigger the provided hook if the given predicate return true for a node.   
+
+**Example of a custom hook:** 
+```python
+# TODO
+```
+
 ### Graph Node
 
 It is possible to embed a graph into another thanks to a graph node. Any visitation going through a graph node is going to be propagated to the inner graph.
@@ -131,7 +154,7 @@ For all example below, we assume a graph as follows:
 ```python
 from freexgraph.standard_visitor import FindFirstVisitor 
 
-v = FindFirstVisitor(lambda node: node.name.startswith("id3"))
+v = FindFirstVisitor(lambda node: node.id.startswith("id3"))
 v.visit(graph_above.root())
 assert v.found()
 assert v.result.name == "id3"
@@ -141,7 +164,7 @@ assert v.result.name == "id3"
 ```python
 from freexgraph.standard_visitor import FindAllVisitor
 
-v = FindAllVisitor(lambda node: node.name[0:3] > "id3")
+v = FindAllVisitor(lambda node: node.id[0:3] > "id3")
 v.visit(graph_above.root())
 assert v.count() == 3
 assert len(v.results) == 3
