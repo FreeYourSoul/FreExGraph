@@ -38,6 +38,7 @@ class MyCustomNode(FreExNode):
 
 ```
 An accept method is provided that return a boolean, if False is returned through the accept method, the visitation stop at that node.
+It is important to know that the default behaviour of FreExNode in case of visitation from a visitor is to be ignored. Only standard visitor would work on a raw FreExNode. It emphasis how important it is to provide your node implementation.
 
 ### Quick Start example
 
@@ -100,11 +101,58 @@ class CustomVisitor(MyBaseVisitor)
 
 After creating node types (see above), we can create an execution graph that will use those nodes.
 
+> it is important to note that the character ':' is forbidden in node id, as it is used for internal node (fork uniqueness and/or root_node)
+
 **add_node:**
 
 **add_nodes:**
 
-> it is important to note that the character ':' is forbidden in node id, as it is used for internal node (fork uniqueness and/or root_node)
+
+### Fork
+
+FreExGraph provide a fork mechanism. It provides an easy way to duplicate a graph from a given node until the end of the graph (or to a specific node that would be used as a join: useful to implement).
+
+Here is an example:   
+_Given the following graph in `execution_graph`:_
+```python
+#            id0
+#             |
+#       .___ id1 ___.           
+#      /      |      \
+#     id2    id3     id4
+#     |     /   \      |
+#     |   id5   id6    |
+#     \     \   /     /
+#      `---- id7 ----'        
+#          /     \
+#        id8     id9
+#
+
+# If we decide to fork (with the fork id f1) from the node id4
+valid_basic_execution_graph.fork_from_node(FreExNode(uid="id4", fork_id="f1"))
+
+# The result would be the following:
+
+#            id0
+#             |
+#       .___ id1 ___.          
+#      /      |      \
+#     id2    id3     id4 ----------- id4::f1
+#     |     /   \      |                |
+#     |   id5   id6    |                |
+#     \     \   /     /                 |
+#      `---- id7 ----'               id7::f1
+#          /     \                 /        \
+#        id8     id9           id8::f1     id9::f1
+#
+```
+Obviously if you want the node id4::f1 (which is of type FreExNode as you asked) to ever be visited by one of your visitor, you should provide your own node implementation.
+
+It is also possible to provide a join node. It will be a node used as join for the fork in order to not have to fork the whole graph from the source of the fork. It is usefull if you have to multiply a big chunk of execution graph because one node has to change some internal values (in experimentation fields, it can be useful for parameter explorations).
+
+> **IN CASE OF MAP REDUCE CASES DO NOT USE FORKS**. It is possible to do so with a join_id.. But it is prefered to do manually your map reduce (with add_node / add_nodes) than to use fork.
+
+Join is do-able by adding the
 
 ### Abstract Visitor hooks
 

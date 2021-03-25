@@ -26,12 +26,62 @@ import uuid
 
 from typing import List
 
-from freexgraph import FreExGraph, FreExNode, AnyVisitor
+from freexgraph import FreExGraph, FreExNode, AnyVisitor, AbstractVisitor
+from freexgraph.freexgraph import GraphNode
+
+
+class VisitationForTesting(AbstractVisitor):
+    visited: List[str]
+    inner_graph_started: List[str]
+    inner_graph_ended: List[str]
+
+    start: bool = False
+    end: bool = False
+
+    def __init__(self):
+        super().__init__(with_progress_bar=True)
+        self.visited = []
+        self.inner_graph_started = []
+        self.inner_graph_ended = []
+
+    def testing_visit(self, node: FreExNode):
+        self.visited.append(node.id)
+        return True
+
+    def hook_start(self):
+        self.visited = []
+        self.inner_graph_started = []
+        self.inner_graph_ended = []
+        self.start = True
+        self.end = False
+
+    def hook_end(self):
+        self.end = True
+
+    def hook_start_graph_node(self, gn: GraphNode):
+        assert self.start, "Bug, start_hook not called?"
+        assert not self.end, "Bug, end_hook cannot be called before the end Duh"
+        self.inner_graph_started.append(gn.id)
+
+    def hook_end_graph_node(self, gn: GraphNode):
+        assert self.start, "Bug, start_hook not called?"
+        assert not self.end, "Bug, end_hook cannot be called before the end Duh"
+        self.inner_graph_ended.append(gn.id)
+
+
+@pytest.fixture(scope="function")
+def visitor_test():
+    return VisitationForTesting()
 
 
 class NodeForTest(FreExNode):
     def accept(self, visitor: AnyVisitor) -> bool:
         return visitor.testing_visit(self)
+
+
+@pytest.fixture(scope="session")
+def node_test_class():
+    return NodeForTest
 
 
 @pytest.fixture(scope="function")

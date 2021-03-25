@@ -125,6 +125,42 @@ AnyFreExNode = Union[FreExNode, GraphNode]
 """Utility to simplify code"""
 
 
+def _remove_duplicated_node(nodes: List[FreExNode]) -> List[FreExNode]:
+    """return a copy of provided the list without duplicates, a duplicate is defined by its id"""
+    filtered_list = []
+    for n in nodes:
+        found = False
+        for in_list in filtered_list:
+            if n.id == in_list.id:
+                found = True
+        if not found:
+            filtered_list.append(n)
+    return filtered_list
+
+
+def _continue_fork(
+    join_node_id: Optional[str], node: FreExNode, successors: List[str]
+) -> bool:
+    """check that the fork has to continue for the given node
+    :return: return true if the next is not the join node and thus fork continue, False otherwise
+    """
+    if join_node_id is None:
+        return True
+    if node.id == join_node_id:
+        return False
+
+    assert (
+        len(successors) > 0
+    ), f"Fork Join error {join_node_id}: node {node.id} reached (doesn't link with the join node)"
+
+    if any([join_node_id in ss for ss in successors]):
+        assert (
+            len(successors) == 1
+        ), f"Fork Join error {join_node_id} : all element from a fork should be joining uniquely the fork"
+        return False
+    return True
+
+
 class FreExGraph:
     """Execution Graph main class"""
 
@@ -137,7 +173,12 @@ class FreExGraph:
             root_node, content=RootNode(uid=root_node, graph_ref=self._graph)
         )
 
-    def add_nodes(self, nodes: List[AnyFreExNode]):
+    @staticmethod
+    def _make_node_id_with_fork(node_id: str, fork_id: str) -> str:
+        """make a unique id for the new fork"""
+        return f"{node_id}::{fork_id}"
+
+    def add_nodes(self, nodes: List[AnyFreExNode]) -> None:
         """Add all the provided nodes in the execution graph.
 
         The ordering of the node creation can be tedious, as it is required that every node parents already exists to be
@@ -167,7 +208,7 @@ class FreExGraph:
         for node in nodes_sorted:
             self.add_node(node)
 
-    def add_node(self, node: AnyFreExNode):
+    def add_node(self, node: AnyFreExNode) -> None:
         """Add a node in the graph
 
         :exception: assertion error if the node contains ':', is already in the graph or if the parents doesn't exists
@@ -186,7 +227,7 @@ class FreExGraph:
         ), f"all node from parents ({node.parents}) has to be previously added in the execution graph"
 
         node._graph_ref = self._graph
-        node._depth = self._find_current_depth(node.parents)
+        node._depth = self.__find_current_depth(node.parents)
         self._graph.add_node(node.id, content=node)
 
         if len(node.parents) == 0:
@@ -224,51 +265,59 @@ class FreExGraph:
             return None
         return self._graph.nodes[node_id]["content"]
 
-    def _find_current_depth(self, parents: Set[str]) -> int:
-        """
-        Check the depth of all given parents, and return the biggest one + 1 (give the layer depth of the current node
-        in the execution graph)
-        :param parents: to check
-        :return: the depth of the node that has the provided parents.
-        """
-        if len(parents) == 0:
-            return 1
-        parent_nodes: List[dict] = [
-            dict(self._graph.nodes[key]) for key in parents if self._graph.has_node(key)
-        ]
-        depth = 0
-        for v in parent_nodes:
-            cmp = v["content"].depth
-            depth = cmp if depth < cmp else depth
-        return depth + 1
-
-    def fork_from_node(self, forked_node: FreExNode) -> None:
+    def fork_from_node(
+        self, forked_node: FreExNode, *, join_id: Optional[str] = None
+    ) -> None:
         """Utility method to fork from a node, when doing so, the provided node will be added with the same dependency
         as the node defined with the id of the forked_node.
 
-        All the graph part depending on the forked node will be duplicated, and their id will be appended with the
-        fork_id set on the forked_node. For this reason it is required to have a fork_id set on the forked_node.
+        All the graph part depending on the forked node will be duplicated (until the join_node if provided), and their
+        id will be appended with the fork_id set on the forked_node. For this reason it is required to have a fork_id
+        set on the forked_node.
 
         > It is the user responsibility to ensure that those id doesn't collide.
+
+        If the provided join_node doesn't exist, an exception is thrown.
+        If a join node is provided, all node from the provided one to the join node is duplicated. All last forked node
+        will depend on the join_node. The join node HAS to be the only node linking all node to be forked.
+
+        example:
+
+                                     ||
+                                  . id1 .
+                               //        \\
+                             id2         id3
+                               \\        //
+                                `  id4 `        id5
+                                   ||
+
+        With the graph above. if we fork from id1 and id4 as join, it works as id2 and id3 are joined on it. But if id5
+        where to be linked with id3 or id2, as id4 wouldn't be the only link possible. An assertion error would arise.
 
         side_note:
             ':' is used as a separator for the id and the fork_id to ensure a unique name. This is the reason why '::'
             is reserved and cannot be used.
 
         :param forked_node: node to replace the fork one, its fork_id field has to be set
+        :param join_id: node to stop duplication (used for map_reduce)
         :exception: Assertion failure in case that the node defined by forked_node.id doesn't exist in the graph or is a
-         GraphNode, or if the forked_node doesn't contains a fork_id
+         GraphNode, or if the forked_node doesn't contains a fork_id. Assertion failure if a join_node is provided but
+         does not exist or that the join_node is not linking all last node to be forked.
         """
         assert self._graph.has_node(
             forked_node.id
-        ), f"{forked_node.id} has to be in the execution graph to be forked"
+        ), f"Error fork of node {forked_node.id}, node to fork has to be in the execution graph"
         assert not isinstance(
             self.get_node(forked_node.id), GraphNode
-        ), f"fork node of id {forked_node.id} error : cannot fork a graph node"
+        ), f"Error fork of node {forked_node.id}: cannot fork a graph node"
         assert (
             forked_node.fork_id
-        ), f"forked node of node {forked_node.id} doesn't have fork_id"
+        ), f"Error fork of node {forked_node.id}: doesn't have fork_id"
+        assert join_id is None or self._graph.has_node(
+            join_id
+        ), f"Error fork of node {forked_node.id} with join_id {join_id}: join_id node doesn't exist in graph "
 
+        # list of all node that will need to be created (all are created at once with add_nodes)
         all_forked_nodes_to_add: List[FreExNode] = []
 
         # recursive internal function to copy a node and then copying all children
@@ -285,8 +334,10 @@ class FreExGraph:
             new_node._fork_id = forked_node.fork_id
             new_node._depth = to_fork.depth
             all_forked_nodes_to_add.append(new_node)
-
-            for successor in list(self._graph.successors(to_fork.id)):
+            all_suc = list(self._graph.successors(to_fork.id))
+            if not _continue_fork(join_id, to_fork, all_suc):
+                return
+            for successor in all_suc:
                 n = self.get_node(successor)
                 id_next_fork = self._make_node_id_with_fork(n.id, forked_node.fork_id)
                 if not self._graph.has_node(id_next_fork):
@@ -296,7 +347,7 @@ class FreExGraph:
             self._make_node_id_with_fork(forked_node.id, forked_node.fork_id),
             forked_node,
         )
-        all_forked_nodes_to_add = self._remove_duplicated_node(all_forked_nodes_to_add)
+        all_forked_nodes_to_add = _remove_duplicated_node(all_forked_nodes_to_add)
 
         # update parents links of all forks (to target their homologue forked and not the root one)
         all_forked_id = [n.id for n in all_forked_nodes_to_add]
@@ -304,6 +355,7 @@ class FreExGraph:
             if node.id != forked_node.id:
                 forked_parents = set()
                 for p in node.parents:
+                    # if parent is in the list of node that has been forked, add the fork name
                     if any([n.startswith(p) for n in all_forked_id]):
                         forked_parents.add(
                             self._make_node_id_with_fork(p, forked_node.fork_id)
@@ -314,20 +366,25 @@ class FreExGraph:
 
         self.add_nodes(all_forked_nodes_to_add)
 
-    @staticmethod
-    def _make_node_id_with_fork(node_id: str, fork_id: str) -> str:
-        """make a unique id for the new fork"""
-        return f"{node_id}::{fork_id}"
+        # Add links on the join node if any is set
+        if join_id is not None:
+            for node_id in all_forked_id:
+                self._graph.add_edge(node_id, join_id)
 
-    @staticmethod
-    def _remove_duplicated_node(nodes: List[FreExNode]):
-        """remove all duplicates of provided the list"""
-        filtered_list = []
-        for n in nodes:
-            found = False
-            for in_list in filtered_list:
-                if n.id == in_list.id:
-                    found = True
-            if not found:
-                filtered_list.append(n)
-        return filtered_list
+    def __find_current_depth(self, parents: Set[str]) -> int:
+        """
+        Check the depth of all given parents, and return the biggest one + 1 (give the layer depth of the current node
+        in the execution graph)
+        :param parents: to check
+        :return: the depth of the node that has the provided parents.
+        """
+        if len(parents) == 0:
+            return 1
+        parent_nodes: List[dict] = [
+            dict(self._graph.nodes[key]) for key in parents if self._graph.has_node(key)
+        ]
+        depth = 0
+        for v in parent_nodes:
+            cmp = v["content"].depth
+            depth = cmp if depth < cmp else depth
+        return depth + 1
