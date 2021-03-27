@@ -3,7 +3,7 @@
 
 python38.pkgs.buildPythonPackage rec {
   pname = "freexgraph";
-  version = "0.1.0";
+  version = "1.0.0";
 
   src = if (builtins.isNull use_revision || use_revision == "") then
     nix-gitignore.gitignoreSource [ ".git" ] ./.
@@ -21,6 +21,8 @@ python38.pkgs.buildPythonPackage rec {
   checkPhase = ''
     python -m pytest
   '';
+
+  pythonImportsCheck = [ "freexgraph" ];
 
   meta = with lib; {
     homepage = "https://github.com/pytoolz/toolz";

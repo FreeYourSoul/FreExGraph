@@ -25,9 +25,13 @@
 Module to manipulate an execution graph
 """
 
-from freexgraph._version import __version__
-
-from freexgraph.freexgraph import FreExGraph, FreExNode, AnyVisitor
+from freexgraph.freexgraph import GraphNode, FreExGraph, FreExNode, AnyVisitor
 from freexgraph.visitor import AbstractVisitor, VisitorComposer
 
 import freexgraph.standard_visitor
+
+
+def version() -> str:
+    from freexgraph._version import __version__
+
+    return __version__

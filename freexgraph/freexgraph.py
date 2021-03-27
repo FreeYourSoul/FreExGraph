@@ -218,7 +218,7 @@ class FreExGraph:
         """
         assert (
             node.fork_id is not None or ":" not in node.id
-        ), f"Node cannot contains a ':' in its name {node.id}"
+        ), f"Node cannot contains a ':' in its id {node.id}"
         assert not self._graph.has_node(
             node.id
         ), f"{node.id} is already in the execution graph"

@@ -23,45 +23,16 @@
 
 import networkx as nx
 
-from contextlib import contextmanager
-from typing import List, Tuple, Any, Callable
-
+from typing import List, Tuple, Callable
 from tqdm import tqdm
 
-from freexgraph.freexgraph import FreExNode, GraphNode, AnyVisitor
+from freexgraph.freexgraph import FreExNode, GraphNode, AnyVisitor, root_node
 
 
-@contextmanager
-def no_progress(**_):
-    class NoProg:
-        def update(self, _=None):
-            pass
-
-        def set_description(self, _=None):
-            pass
-
-        def set_postfix(self, _=None):
-            pass
-
-    yield NoProg()
-
-
-def _is_node_ignored(node: Any) -> bool:
-    return False
-
-
-def _get_len(
-    sorted_node_list: List[Tuple], ref_graph: nx.DiGraph, with_progress_bar: bool
-) -> int:
+def _get_len(sorted_node_list: List[Tuple], with_progress_bar: bool) -> int:
     if not with_progress_bar:
         return 0
-    return len(
-        [
-            n
-            for n in sorted_node_list
-            if not _is_node_ignored(ref_graph.nodes[n]["content"])
-        ]
-    )
+    return len([n for n in sorted_node_list])
 
 
 class AbstractVisitor:
@@ -103,23 +74,23 @@ class AbstractVisitor:
     def apply_visitation_(self, root: FreExNode) -> bool:
         """do not override / directly use. Internal visitation method, use visit(root) instead"""
 
-        ctx_prog = tqdm if self.with_progress_bar else no_progress
         sorted_node_list = list(nx.lexicographical_topological_sort(root.graph_ref))
 
         if self.is_reversed:
             sorted_node_list = list(reversed(sorted_node_list))
 
-        with ctx_prog(
-            total=_get_len(sorted_node_list, root.graph_ref, self.with_progress_bar)
+        with tqdm(
+            total=_get_len(sorted_node_list, self.with_progress_bar),
+            disable=not self.with_progress_bar,
         ) as pbar:
             pbar.set_description(f"Processing Visitor {type(self).__name__}")
             for node_id in sorted_node_list:
                 node = root.graph_ref.nodes[node_id]["content"]
 
                 # Trigger custom hook
-                # for predicate, hook in self.__custom_hooks:
-                #     if predicate(node):
-                #         hook(node)
+                for predicate, hook in self.__custom_hooks:
+                    if node.id != root_node and predicate(node):
+                        hook(node)
 
                 if not node.apply_accept_(self):
                     return False
@@ -149,15 +120,11 @@ class AbstractVisitor:
         """Hook to implement in order to do an action at the end of the visitation"""
         pass
 
-    def hook_fork_started(self, n: FreExNode, fork_id: str):
-        """Hook to implement in order to do an action when a new fork start to be visited"""
-        pass
-
-    def register_custom_hook(self, predicate: Callable, hook: Callable):
+    def register_custom_hook(self, *, predicate: Callable, hook: Callable):
         """Register a custom hook
 
-        Provided predicate is applied on each node, if it return true, provided hook is executed (with node given as
-        parameter)
+        Provided predicate which will be applied on each node during visitation, if it return true, the provided hook is
+        executed (with visited node given as parameter)
 
         :param predicate: check node against to trigger hook
         :param hook: Callable to trigger in case the predicate is returning True for a visited node
@@ -218,21 +185,23 @@ class VisitorComposer:
         return to_continue
 
     def _composed_visit(self, root: FreExNode) -> bool:
-        ctx_prog = tqdm if self._with_progress_bar else no_progress
         sorted_node_list = list(nx.lexicographical_topological_sort(root.graph_ref))
 
         if self._is_reversed:
             sorted_node_list = list(reversed(sorted_node_list))
 
-        with ctx_prog(
-            total=_get_len(sorted_node_list, root.graph_ref, self._with_progress_bar)
+        with tqdm(
+            total=_get_len(sorted_node_list, self._with_progress_bar),
+            disable=not self._with_progress_bar,
         ) as pbar:
             pbar.set_description("Processing Composed Visitor")
 
             for node_id in sorted_node_list:
                 # do the visitation for the node on each action visitor
                 for action_visitor in self._action_composed:
-                    if not root.graph_ref.nodes[node_id]["content"].apply_accept_(action_visitor):
+                    if not root.graph_ref.nodes[node_id]["content"].apply_accept_(
+                        action_visitor
+                    ):
                         return False
 
                 pbar.set_postfix({"node": node_id})

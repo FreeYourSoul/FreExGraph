@@ -26,8 +26,7 @@ import uuid
 
 from typing import Optional
 
-from freexgraph.freexgraph import GraphNode
-from freexgraph import FreExNode, FreExGraph
+from freexgraph import GraphNode, FreExNode, FreExGraph
 
 
 class NodeForTest(FreExNode):
@@ -104,6 +103,49 @@ def test_visitation(valid_basic_execution_graph, visitor_test):
     assert visitor_test.visited[2].startswith("id4_")
     assert visitor_test.visited[3].startswith("id3_")
     assert visitor_test.visited[4].startswith("id5_")
+
+
+# used only in test_visitation_custom_hook and never somewhere else
+test_visitation_custom_hook_count = [0, 0]
+
+
+def test_visitation_custom_hook(visitor_test, node_test_class):
+    execution_graph = FreExGraph()
+    id1 = f"id1_{uuid.uuid4()}"
+    id2 = f"id2_{uuid.uuid4()}"
+    id3 = f"id3_{uuid.uuid4()}"
+    id3_bis = f"id3bis_{uuid.uuid4()}"
+    id4 = f"id4_{uuid.uuid4()}"
+    id5 = f"id5_{uuid.uuid4()}"
+
+    execution_graph.add_node(node_test_class(id1)),
+    execution_graph.add_node(node_test_class(id2, parents={id1})),
+    execution_graph.add_node(node_test_class(id4, parents={id2})),
+    execution_graph.add_node(node_test_class(id3, parents={id2, id4})),
+    execution_graph.add_node(node_test_class(id3_bis, parents={id4})),
+    execution_graph.add_node(node_test_class(id5, parents={id4, id3})),
+
+    def hook(_):
+        global test_visitation_custom_hook_count
+        test_visitation_custom_hook_count[0] += 1
+
+    def hook_2(_):
+        global test_visitation_custom_hook_count
+        test_visitation_custom_hook_count[1] += 1
+
+    visitor_test.register_custom_hook(
+        predicate=lambda n: n.id.startswith("id3"), hook=hook
+    )
+    visitor_test.register_custom_hook(
+        predicate=lambda n: not n.id.startswith("id3"),
+        hook=hook_2,
+    )
+    visitor_test.visit(execution_graph.root)
+
+    assert visitor_test.end
+    assert len(visitor_test.visited) == 6
+    assert test_visitation_custom_hook_count[0] == 2
+    assert test_visitation_custom_hook_count[1] == 4
 
 
 def test_graph_node(valid_basic_execution_graph, visitor_test):
