@@ -28,7 +28,7 @@ from typing import List, Tuple, Any, Callable
 
 from tqdm import tqdm
 
-from freexgraph.freexgraph import FreExNode, GraphNode
+from freexgraph.freexgraph import FreExNode, GraphNode, AnyVisitor
 
 
 @contextmanager
@@ -168,18 +168,18 @@ class AbstractVisitor:
 class VisitorComposer:
     """Class to compose visitor together"""
 
-    _sequential_before: List[AbstractVisitor]
-    _action_composed: List[AbstractVisitor]
-    _sequential_after: List[AbstractVisitor]
+    _sequential_before: List[AnyVisitor]
+    _action_composed: List[AnyVisitor]
+    _sequential_after: List[AnyVisitor]
     _is_reversed: bool
     _with_progress_bar: bool
 
     def __init__(
         self,
-        actions: List[AbstractVisitor],
+        actions: List[AnyVisitor],
         *,
-        before: List[AbstractVisitor],
-        after: List[AbstractVisitor],
+        before: List[AnyVisitor] = None,
+        after: List[AnyVisitor] = None,
         progress_bar_on_actions: bool = False,
     ):
         """
@@ -189,7 +189,6 @@ class VisitorComposer:
         :param after:
         :param progress_bar_on_actions:
         """
-        assert len(actions) > 1, "Composition of not at least 2 visitors is useless"
         reversed_action: List[bool] = [rev.is_reversed for rev in actions]
         assert all(reversed_action) or not any(
             reversed_action
@@ -198,8 +197,8 @@ class VisitorComposer:
         self._is_reversed = reversed_action[0]
         self._with_progress_bar = progress_bar_on_actions
         self._action_composed = actions
-        self._sequential_before = before
-        self._sequential_after = after
+        self._sequential_before = before or []
+        self._sequential_after = after or []
 
     def visit(self, root: FreExNode) -> bool:
         to_continue = True
@@ -233,7 +232,7 @@ class VisitorComposer:
             for node_id in sorted_node_list:
                 # do the visitation for the node on each action visitor
                 for action_visitor in self._action_composed:
-                    if not root.graph_ref.nodes[node_id].apply_accept_(action_visitor):
+                    if not root.graph_ref.nodes[node_id]["content"].apply_accept_(action_visitor):
                         return False
 
                 pbar.set_postfix({"node": node_id})

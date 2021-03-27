@@ -130,7 +130,7 @@ It is possible to embed a graph into another thanks to a graph node. Any visitat
 
 ### Fork
 
-FreExGraph provide a fork mechanism. It provides an easy way to duplicate a graph from a given node until the end of the graph (or to a specific node that would be used as a join: useful to implement).
+FreExGraph provide a fork mechanism. It provides an easy way to duplicate a graph from a given node until the end of the graph (or to a specific node that would be used as a join).
 
 Here is an example:   
 _Given the following graph in `execution_graph`:_
@@ -179,11 +179,11 @@ Join is do-able by adding the
 ### Abstract Visitor hooks
 
 Abstract visitor provide some default hooks that can be overridden from custom visitors in order to implement more complex logic depending on the graph visit.
-* `hook_start()` : This hook is called when the visitation of the graph start
-* `hook_end()` : This hook is called when the visitation of the graph end
-* `hook_fork_started(n: FreExNode, fork_id: str)` : This hook is called when a fork has been entered (when visiting the first node of a fork)
-* `hook_start_graph_node(gn: GraphNode)` : This hook is called when a graphnode recursion start (graph node given as parameter of the hook)
-* `hook_end_graph_node(gn: GraphNode)` : This hook is called when a graphnode visitation end (graph node given as parameter of the hook)
+* `hook_start()` : This hook is called when the visitation of the graph start (an interesting way to use this hook could be to reinitialize your visitor in case of re-use).
+* `hook_end()` : This hook is called when the visitation of the graph end.
+* `hook_fork_started(n: FreExNode, fork_id: str)` : This hook is called when a fork has been entered (when visiting the first node of a fork).
+* `hook_start_graph_node(gn: GraphNode)` : This hook is called when a graphnode recursion start (graph node given as parameter of the hook).
+* `hook_end_graph_node(gn: GraphNode)` : This hook is called when a graphnode visitation end (graph node given as parameter of the hook).
 
 Custom hooks can be implemented if you must trigger a specific action that depend on the business data stored in your node.   
 To do so, in the `__init__` of your custom visitor, use the method `register_custom_hook(predicate: Callable, hook: Callable)` : This method will trigger the provided hook if the given predicate return true for a node.   
@@ -242,6 +242,25 @@ v = ValidateGraphIntegrity()
 
 # visitation does assertion to verify if the graph is correct
 v.visit(graph_above.root())
+```
+Those visitor implement the start hook that reinitialize their state as if they were new freshly created visitor. Which is why an instance of a standard visitor can be re-used. To implement this kind of behaviour in your own visitors, check out [visitor hooks](#abstract-visitor-hooks).
+
+### Reverse visit
+It is possible to revert the order of visitation of your visitor by setting its attribute `is_reversed` of your visitor (works with any kind of visitor), example :
+```python
+# we assume a graph called `execution_graph` that represent the following graph:
+# id_1 ---> id_2 ---> id_3 ---> id4 ---> id3bis ---> id5
+
+v = FindFirstVisitor(lambda node: node.id.startswith("id3"))
+
+v.visit(execution_graph.root)
+assert v.found()
+assert v.result.id == "id3"
+
+v.is_reversed = True
+v.visit(execution_graph.root)
+assert v.found()
+assert v.result.id == "id3bis"
 ```
 
 ## Installation

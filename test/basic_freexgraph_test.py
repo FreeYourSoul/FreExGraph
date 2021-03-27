@@ -24,7 +24,7 @@
 import pytest
 import uuid
 
-from typing import List, Optional
+from typing import Optional
 
 from freexgraph.freexgraph import GraphNode
 from freexgraph import FreExNode, FreExGraph

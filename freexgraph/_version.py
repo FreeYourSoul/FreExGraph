@@ -21,34 +21,4 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import setuptools
-import re
-
-VERSIONFILE="freexgraph/_version.py"
-verstrline = open(VERSIONFILE, "rt").read()
-VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
-mo = re.search(VSRE, verstrline, re.M)
-if mo:
-    verstr = mo.group(1)
-else:
-    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
-
-setuptools.setup(
-    name="freexgraph",
-    version=verstr,
-    author="Quentin Balland",
-    author_email="ballandFyS@protonmail.com",
-    description="An execution graph library",
-    url="https://github.com/FreeYourSoul/FreExGraph",
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-    ],
-    packages=setuptools.find_packages(),
-    python_requires=">=3.6",
-    install_requires=[
-        "tqdm",
-        "networkx",
-    ],
-)
+__version__ = "0.1.0"
