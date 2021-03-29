@@ -26,7 +26,7 @@
 
 ## Feature todo
 
-* Delete node 
+* ~~Delete node~~ 
 
 ## Testing todo
 

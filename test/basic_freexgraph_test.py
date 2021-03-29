@@ -281,7 +281,7 @@ def test_delete_one_node(visitor_test):
     execution_graph.add_node(NodeForTest(ida))
     execution_graph.add_node(NodeForTest(idb, parents={ida}))
     execution_graph.add_node(NodeForTest(idd, parents={idb}))
-    execution_graph.add_node(NodeForTest(idx, parents={idb}))
+    execution_graph.add_node(NodeForTest(idx, parents={idb, idd}))
     execution_graph.add_node(NodeForTest(idc, parents={idd}))
     execution_graph.add_node(NodeForTest(ide, parents={idd, idx}))
 
@@ -307,7 +307,7 @@ def test_delete_one_node(visitor_test):
     assert idx == visitor_test.visited[4]
 
 
-def test_delete_node_with_childs(valid_complex_graph):
+def test_delete_node_with_childs(visitor_test):
     #
     #                ida
     #                 |
@@ -330,9 +330,18 @@ def test_delete_node_with_childs(valid_complex_graph):
     execution_graph.add_node(NodeForTest(ida))
     execution_graph.add_node(NodeForTest(idb, parents={ida}))
     execution_graph.add_node(NodeForTest(idd, parents={idb}))
-    execution_graph.add_node(NodeForTest(idx, parents={idb}))
+    execution_graph.add_node(NodeForTest(idx, parents={idb, idd}))
     execution_graph.add_node(NodeForTest(idc, parents={idd}))
     execution_graph.add_node(NodeForTest(ide, parents={idd, idx}))
 
-    # should remove idc and ide
-    # execution_graph.remove_node(idd)
+    # should remove idc, ide and idx
+    execution_graph.remove_node(idd)
+
+    visitor_test.visit(execution_graph.root)
+
+    assert len(visitor_test.visited) == 2
+
+    assert ide not in visitor_test.visited
+
+    assert ida == visitor_test.visited[0]
+    assert idb == visitor_test.visited[1]

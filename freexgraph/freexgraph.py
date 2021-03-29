@@ -20,7 +20,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
+from copy import copy
 from typing import Optional, Union, Set, List, Any
 
 import networkx as nx
@@ -240,11 +240,10 @@ class FreExGraph:
         """Remove the provided node and all its successors
         :param node_id: node to remove
         """
-        assert self._graph.has_node(
-            node_id
-        ), f"{node_id} has to be in the execution graph to be removed"
-        self._graph.remove_nodes_from(self._graph.successors(node_id))
-        self._graph.remove_node(node_id)
+        if self._graph.has_node(node_id):
+            for n in copy(self._graph.successors(node_id)):
+                self.remove_node(n)
+            self._graph.remove_node(node_id)
 
     @property
     def root(self) -> FreExNode:
