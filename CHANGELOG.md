@@ -4,6 +4,7 @@
 (Released : April 2, 2021) : tag 1.0.0
 * Complete documentation
 * Test and implement custom visitor hook
+* Implement delete nodes
 
 ## Version 0.0.0
 (Alpha released : March 27, 2021) : tag 0.1.0
