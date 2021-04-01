@@ -24,6 +24,7 @@
 * ~~Add doc about node / graph creation~~
 * ~~Add documentation about graph nodes~~
 * ~~Add documentation about custom hook~~
+* ~~Add documentation Composed Visitor~~
 
 ## Feature todo
 

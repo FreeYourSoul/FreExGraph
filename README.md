@@ -349,7 +349,41 @@ class MyCustomVisitor(AbstractVisitor):
     ...
 ```
 
+### Composed Visitor
+
+Usually, in order to complete the action you want to perform on a graph, you require to chain the visitor one after the other. In order to do so, a utility exist in freexgraph called VisitorComposer.
+
+A visitor composer is split between three part :
+* before : a list of visitor pattern to apply one after the other. Each of those visitations will trigger a traversal of the graph. All those visitors are launched in order before the action
+* action : a list of visitor pattern to apply in one traversal. It is useful in order to not traverse the graph too many times if not required
+* after : a list of visitor pattern to apply one after the other. Each of those visitations will trigger a traversal of the graph. All those visitors are launched in order after the action
+
+The action visitor list from the visitor composer is what is special. It makes it possible to do multiple actions in one traversal of the graph.
+
+Usage example:
+```python
+all_before: List[AbstractVisitor] = [ VisitorA(), VisitorB() ]
+actions: List[AbstractVisitor]    = [ VisitorC(), VisitorD(), VisitorE() ]
+all_after: List[AbstractVisitor]  = [ VisitorF(), VisitorG() ]
+
+visitor_composed = VisitorComposer(before=all_before, action=actions, after=all_after)
+
+# At visitation of the composed visitor
+# * VisitorA is applied on execution_graph.root (full traversal)
+# * VisitorB is applied on execution_graph.root (full traversal)
+#
+# In one traversal
+# * VisitorC action is applied on each node
+# * VisitorD action is applied on each node
+# * VisitorE action is applied on each node
+#
+# * VisitorF is applied on execution_graph.root (full traversal)
+# * VisitorG is applied on execution_graph.root (full traversal)
+visitor_composed.visit(execution_graph.root)
+```
+
 ### Reverse visit
+
 It is possible to revert the order of visitation of any visitor by setting its attribute `is_reversed` of the visitor (works with any type of visitor inheriting from AbstractVisitor).  
 example :
 ```python
