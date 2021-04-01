@@ -3,8 +3,9 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/e5d3ee2861954023afce6f161a9d6b64)](https://www.codacy.com/gh/FreeYourSoul/FreExGraph/dashboard?utm_source=github.com&utm_medium=referral&utm_content=FreeYourSoul/FreExGraph&utm_campaign=Badge_Coverage)
 [![Scc Count Badge](https://sloc.xyz/github/FreeYourSoul/FreExGraph/)](https://github.com/FreeYourSoul/FreExGraph/)
 [![Scc Count Badge](https://sloc.xyz/github/FreeYourSoul/FreExGraph/?category=code)](https://github.com/FreeYourSoul/FreExGraph/)
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/FreeYourSoul/FreExGraph/master/LICENSE)
 
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/FreeYourSoul/FreExGraph/master/LICENSE)
+[![Upload Python Package](https://github.com/FreeYourSoul/FreExGraph/actions/workflows/python-publish.yml/badge.svg)](https://github.com/FreeYourSoul/FreExGraph/actions/workflows/python-publish.yml)
 # FreExGraph
 An Execution graph implementation.
 It provide:
@@ -408,7 +409,12 @@ assert v.result.id == "id3bis"
 
 * Via pip
 ```shell
+# from source
 pip install .
+
+# from pypi (latest released version)
+pip install freexgraph
+
 # uninstall with `pip uninstall freexgraph`
 ```
 
