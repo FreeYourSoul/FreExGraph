@@ -177,9 +177,9 @@ example
 execution_graph = FreExGraph()
 node_1 = FreExNode(id1)
 node_2 = FreExNode(id2, parents={id1})
-node_3 = FreExNode(id3, parents={id2, id4}
+node_3 = FreExNode(id3, parents={id2, id4})
 node_4 = FreExNode(id4, parents={id2})
-node_5 = FreExNode(id5, parents={id4, id3}))
+node_5 = FreExNode(id5, parents={id4, id3})
 
 # adding them in complete disorder is okay
 execution_graph.add_nodes([node_5, node_2, node_1, node_3, node_4])
@@ -310,7 +310,7 @@ For all example below, we assume a graph as follows:
 from freexgraph.standard_visitor import FindFirstVisitor 
 
 v = FindFirstVisitor(lambda node: node.id.startswith("id3"))
-v.visit(graph_above.root())
+v.visit(graph_above.root)
 assert v.found()
 assert v.result.name == "id3"
 ```
@@ -320,7 +320,7 @@ assert v.result.name == "id3"
 from freexgraph.standard_visitor import FindAllVisitor
 
 v = FindAllVisitor(lambda node: node.id[0:3] > "id3")
-v.visit(graph_above.root())
+v.visit(graph_above.root)
 assert v.count() == 3
 assert len(v.results) == 3
 ```
@@ -332,7 +332,7 @@ from freexgraph.standard_visitor import ValidateGraphIntegrity
 v = ValidateGraphIntegrity()
 
 # visitation does assertion to verify if the graph is correct
-v.visit(graph_above.root())
+v.visit(graph_above.root)
 ```
 Those visitors implement the start hook that reinitialize their state as if they were new freshly created visitor. Which is why an instance of a standard visitor can be re-used. To implement this kind of behaviour in your own visitors, check out [visitor hooks](#abstract-visitor-hooks).
 
@@ -364,8 +364,8 @@ The action visitor list from the visitor composer is what is special. It makes i
 Usage example:
 ```python
 all_before: List[AbstractVisitor] = [ VisitorA(), VisitorB() ]
-actions: List[AbstractVisitor]    = [ VisitorC(), VisitorD(), VisitorE() ]
-all_after: List[AbstractVisitor]  = [ VisitorF(), VisitorG() ]
+actions:    List[AbstractVisitor] = [ VisitorC(), VisitorD(), VisitorE() ]
+all_after:  List[AbstractVisitor] = [ VisitorF(), VisitorG() ]
 
 visitor_composed = VisitorComposer(before=all_before, action=actions, after=all_after)
 
@@ -378,6 +378,7 @@ visitor_composed = VisitorComposer(before=all_before, action=actions, after=all_
 # * VisitorD action is applied on each node
 # * VisitorE action is applied on each node
 #
+# After 
 # * VisitorF is applied on execution_graph.root (full traversal)
 # * VisitorG is applied on execution_graph.root (full traversal)
 visitor_composed.visit(execution_graph.root)

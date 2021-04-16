@@ -86,7 +86,6 @@ def test_count_visitor(valid_basic_execution_graph):
     assert v.results[0].id.startswith("id4")
     assert v.results[1].id.startswith("id5")
     # test re-use
-    v = FindAllVisitor(lambda node: node.id[0:3] > "id3")
     v.visit(valid_basic_execution_graph.root)
     assert v.count() == 2
     assert v.results[0].id.startswith("id4")

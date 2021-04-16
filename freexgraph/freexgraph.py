@@ -70,6 +70,20 @@ class FreExNode:
         """Accept to be overridden by custom Nodes"""
         return True
 
+    def get_successors(self) -> List["FreExNode"]:
+        """Retrieve nodes depending on the current one"""
+        return [
+            self._graph_ref.nodes[node_id]["content"]
+            for node_id in self._graph_ref.successors(self._id)
+        ]
+
+    def get_predecessors(self) -> List["FreExNode"]:
+        """Retrieve nodes the current node depends on"""
+        return [
+            self._graph_ref.nodes[node_id]["content"]
+            for node_id in self._graph_ref.predecessors(self._id)
+        ]
+
     @property
     def id(self) -> str:
         """Id of the node in the graph, will be automatically set/overridden when adding the node."""

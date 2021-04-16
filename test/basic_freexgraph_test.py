@@ -345,3 +345,25 @@ def test_delete_node_with_childs(visitor_test):
 
     assert ida == visitor_test.visited[0]
     assert idb == visitor_test.visited[1]
+
+
+def test_predecessors_successors(valid_basic_execution_graph):
+    from freexgraph.standard_visitor import FindFirstVisitor
+    v = FindFirstVisitor(lambda node: node.id.startswith("id3"))
+    v.visit(valid_basic_execution_graph.root)
+
+    assert v.found()
+    assert v.result.id.startswith("id3")
+    assert len(v.result.parents) == 2
+
+    node_predecessors = v.result.get_predecessors()
+    node_predecessors.sort(key=lambda n: n.id)
+    assert len(node_predecessors) == 2
+    assert node_predecessors[0].id.startswith("id2")
+    assert node_predecessors[1].id.startswith("id4")
+
+    node_predecessors = v.result.get_successors()
+    assert len(node_predecessors) == 1
+    assert node_predecessors[0].id.startswith("id5")
+
+
