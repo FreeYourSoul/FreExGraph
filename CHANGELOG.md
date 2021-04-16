@@ -1,5 +1,11 @@
 # Changelogs
 
+## Version 1.1.0
+(Released : April 16, 2021) : tag 1.1.0
+* Fix documentation
+* Add utility method at node level (get_predecessors/get_successors)
+* Add possibility to visitation of the graph from anywhere (starting provided node) as it would have been expected seeing the API
+
 ## Version 1.0.0 
 (Released : April 2, 2021) : tag 1.0.0
 * Complete documentation
@@ -29,6 +35,7 @@
 ## Feature todo
 
 * ~~Delete node~~ 
+* ~~Partial graph traversal~~
 
 ## Testing todo
 

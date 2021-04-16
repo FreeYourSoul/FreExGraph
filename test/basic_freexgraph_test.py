@@ -26,6 +26,7 @@ import uuid
 
 from typing import Optional
 
+from freexgraph.standard_visitor import FindFirstVisitor
 from freexgraph import GraphNode, FreExNode, FreExGraph
 
 
@@ -348,7 +349,6 @@ def test_delete_node_with_childs(visitor_test):
 
 
 def test_predecessors_successors(valid_basic_execution_graph):
-    from freexgraph.standard_visitor import FindFirstVisitor
     v = FindFirstVisitor(lambda node: node.id.startswith("id3"))
     v.visit(valid_basic_execution_graph.root)
 
@@ -367,3 +367,28 @@ def test_predecessors_successors(valid_basic_execution_graph):
     assert node_predecessors[0].id.startswith("id5")
 
 
+def test_middle_visitation_start(valid_complex_graph):
+    v = FindFirstVisitor(lambda node: node.id == "F")
+    v.visit(valid_complex_graph.root)
+
+    f_node = v.result
+    assert v.found()
+    assert f_node.id == "F"
+
+    # G and F are at the same level and thus are always executed on partial visitation
+    find_g = FindFirstVisitor(lambda node: node.id == "G")
+
+    # start visitation from F node [A, B, C, D, E] should not be visited
+    v = FindFirstVisitor(lambda node: node.id in ["A", "B", "C", "D", "E"])
+    v.visit(f_node)
+    assert not v.found()
+    find_g.visit(f_node)
+    assert find_g.found()
+
+    # start reverse visitation node [H, I, J, K, L, M] should not be visited
+    v = FindFirstVisitor(lambda node: node.id in ["H", "I", "J", "K", "L", "M"])
+    v.is_reversed = True
+    v.visit(f_node)
+    assert not v.found()
+    find_g.visit(f_node)
+    assert find_g.found()

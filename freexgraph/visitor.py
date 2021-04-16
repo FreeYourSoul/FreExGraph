@@ -35,6 +35,22 @@ def _get_len(sorted_node_list: List[Tuple], with_progress_bar: bool) -> int:
     return len([n for n in sorted_node_list])
 
 
+def _filter_graph_root_for_visitation(root: FreExNode, is_reversed: bool):
+    depth: int = root.depth
+    sorted_node_list = list(nx.lexicographical_topological_sort(root.graph_ref))
+    if is_reversed:
+        sorted_node_list = list(reversed(sorted_node_list))
+
+    if depth == 0:
+        return sorted_node_list
+    node_content = [
+        root.graph_ref.nodes[node_id]["content"] for node_id in sorted_node_list
+    ]
+    if is_reversed:
+        return [n.id for n in node_content if n.depth <= depth and n.id != root.id]
+    return [n.id for n in node_content if n.depth >= depth and n.id != root.id]
+
+
 class AbstractVisitor:
     """Base class for Visitor.
 
@@ -74,10 +90,7 @@ class AbstractVisitor:
     def apply_visitation_(self, root: FreExNode) -> bool:
         """do not override / directly use. Internal visitation method, use visit(root) instead"""
 
-        sorted_node_list = list(nx.lexicographical_topological_sort(root.graph_ref))
-
-        if self.is_reversed:
-            sorted_node_list = list(reversed(sorted_node_list))
+        sorted_node_list = _filter_graph_root_for_visitation(root, self.is_reversed)
 
         with tqdm(
             total=_get_len(sorted_node_list, self.with_progress_bar),
@@ -185,10 +198,7 @@ class VisitorComposer:
         return to_continue
 
     def _composed_visit(self, root: FreExNode) -> bool:
-        sorted_node_list = list(nx.lexicographical_topological_sort(root.graph_ref))
-
-        if self._is_reversed:
-            sorted_node_list = list(reversed(sorted_node_list))
+        sorted_node_list = _filter_graph_root_for_visitation(root, self._is_reversed)
 
         with tqdm(
             total=_get_len(sorted_node_list, self._with_progress_bar),
