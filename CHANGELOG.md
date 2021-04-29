@@ -1,7 +1,7 @@
 # Changelogs
 
 ## Version 1.2.0
-(Not released yet)
+(Released : April 30, 2021) : tag 1.2.0
 * Add sub_graph
 * Fix bug (forced to set an id on GraphNode constructor)
 
