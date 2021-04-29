@@ -19,6 +19,7 @@ It provide:
   * [Graph creation](#graph-creation)
   * [Graph Node](#graph-node) 
   * [Fork mechanism](#fork) 
+  * [Sub graph](#sub-graph) 
 * [Visitors](#visitors)
     * [Visitor hook](#abstract-visitor-hooks)
     * [Standard visitors](#standard-visitor-provided-by-freexgraph)
@@ -257,6 +258,20 @@ It is also possible to provide a join node. It will be a node used as join for t
 
 But if you want to do a map reduce with a fork, it is do-able by setting the join_id to the `fork_from_node` method. The join_id has to be an existing node on which, for every parents that are part of the fork has only this join node as child.
 See [test using this mechanism](https://github.com/FreeYourSoul/FreExGraph/blob/ae707cf0fcb8486bde783cd0c7fe67217a56b3d2/test/fork_test.py#L41-L66) for more details
+
+### Sub-Graph
+
+A method exist in the `FreExGraph` class in order to make sub graph out of the graph.
+The signature is the following:
+```python
+def sub_graph(
+    self, from_node_id: str, to_nodes_id: Optional[List[str]] = None
+) -> FreExGraph:
+```
+
+Providing a node to start the subgraph and optionally a set of node where you want the sub graph to end. If no node matching the ``to_nodes_id`` is encountered, the subgraph go until the leaf nodes of the graph.
+
+This feature may be used as a fork mechanism (as seen above). It is easier to manipulate and monitor.
 
 ## Visitors
 

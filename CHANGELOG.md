@@ -32,21 +32,21 @@
 
 ## Feature todo
 
-* Implement sub_graph
+* ~~Implement sub_graph~~
 * ~~fix graph node enforcement of uid~~
 * ~~Delete node~~ 
 * ~~Partial graph traversal~~
 
 ## Documentation todo
 
+* ~~Add documentation on sub_graph~~
 * ~~Add doc about node / graph creation~~
 * ~~Add documentation about graph nodes~~
 * ~~Add documentation about custom hook~~
 * ~~Add documentation Composed Visitor~~
-* Add documentation on sub_graph
 
 ## Testing todo
 
-* Test sub_graph
+* ~~Test sub_graph~~
 * ~~Test Composed Visitor~~
 * ~~Custom hook~~

@@ -125,7 +125,7 @@ def unordered_node_list_for_complex_graph() -> List[NodeForTest]:
     #
     return [
         NodeForTest("C", parents={"A"}),
-        NodeForTest("K", parents={"G"}),
+        NodeForTest("K", parents={"G", "F"}),
         NodeForTest("M", parents={"K", "B"}),
         NodeForTest("D", parents={"A"}),
         NodeForTest("J", parents={"F"}),

@@ -296,25 +296,28 @@ class FreExGraph:
         ), f"Error sub graph from node {from_node_id}, node has to be in the execution graph"
 
         nodes_in_subgraph: List[FreExNode] = []
-        nodes_in_subgraph_id: List[str] = []
+        nodes_in_subgraph_id: Set[str] = set()
 
         def add_node_in_subgraph(current_node: FreExNode):
-            current_node.parents = {
-                p for p in current_node.parents if p in nodes_in_subgraph_id
-            }
+            if current_node.id in nodes_in_subgraph_id:
+                return
             nodes_in_subgraph.append(current_node)
-            if to_nodes_id is not None and current_node in to_nodes_id:
+            nodes_in_subgraph_id.add(current_node.id)
+            if to_nodes_id is not None and current_node.id in to_nodes_id:
                 return
             all_suc = list(self._graph.successors(current_node.id))
             for successor in all_suc:
-                n = self.get_node(successor)
+                node_suc = self.get_node(successor)
                 assert (
-                    n is not None
-                ), f"Error sub graph to node {n.id}, node has to be in the execution graph"
-                add_node_in_subgraph(n)
-                nodes_in_subgraph_id.append(n.id)
+                    node_suc is not None
+                ), f"Error sub graph to node {node_suc.id}, node has to be in the execution graph"
+                add_node_in_subgraph(node_suc)
 
         add_node_in_subgraph(from_node)
+
+        # cleanup parents
+        for n in nodes_in_subgraph:
+            n.parents = {p for p in n.parents if p in nodes_in_subgraph_id}
 
         sub_graph = FreExGraph()
         sub_graph.add_nodes(nodes_in_subgraph)
