@@ -123,7 +123,9 @@ class GraphNode(FreExNode):
 
     _graph_ex: "FreExGraph"
 
-    def __init__(self, uid: str, *, graph: "FreExGraph", parents: Set[str] = None):
+    def __init__(
+        self, uid: str = None, *, graph: "FreExGraph", parents: Set[str] = None
+    ):
         super().__init__(uid=uid, parents=parents, graph_ref=graph._graph)
         self._graph_ex = graph
 
@@ -277,6 +279,46 @@ class FreExGraph:
         if not self._graph.has_node(node_id):
             return None
         return self._graph.nodes[node_id]["content"]
+
+    def sub_graph(
+        self, from_node_id: str, to_nodes_id: Optional[List[str]] = None
+    ) -> "FreExGraph":
+        """Utility method to retrieve a subgraph from a given node until the end of the graph or until one of the
+        provided node is encountered.
+
+        :param from_node_id: node from which the sub graph start
+        :param to_nodes_id: nodes on which the sub graph stop, if none encountered, subgraph go until the leaf nodes
+        :return: a sub graph delimited by the provided nodes id
+        """
+        from_node: FreExNode = self.get_node(from_node_id)
+        assert (
+            from_node is not None
+        ), f"Error sub graph from node {from_node_id}, node has to be in the execution graph"
+
+        nodes_in_subgraph: List[FreExNode] = []
+        nodes_in_subgraph_id: List[str] = []
+
+        def add_node_in_subgraph(current_node: FreExNode):
+            current_node.parents = {
+                p for p in current_node.parents if p in nodes_in_subgraph_id
+            }
+            nodes_in_subgraph.append(current_node)
+            if to_nodes_id is not None and current_node in to_nodes_id:
+                return
+            all_suc = list(self._graph.successors(current_node.id))
+            for successor in all_suc:
+                n = self.get_node(successor)
+                assert (
+                    n is not None
+                ), f"Error sub graph to node {n.id}, node has to be in the execution graph"
+                add_node_in_subgraph(n)
+                nodes_in_subgraph_id.append(n.id)
+
+        add_node_in_subgraph(from_node)
+
+        sub_graph = FreExGraph()
+        sub_graph.add_nodes(nodes_in_subgraph)
+        return sub_graph
 
     def fork_from_node(
         self, forked_node: FreExNode, *, join_id: Optional[str] = None

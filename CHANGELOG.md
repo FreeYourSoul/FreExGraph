@@ -1,5 +1,10 @@
 # Changelogs
 
+## Version 1.2.0
+(Not released yet)
+* Add sub_graph
+* Fix bug (forced to set an id on GraphNode constructor)
+
 ## Version 1.1.0
 (Released : April 16, 2021) : tag 1.1.0
 * Fix documentation
@@ -25,19 +30,23 @@
 
 ## TODO list for FreExGraph (next versions)
 
+## Feature todo
+
+* Implement sub_graph
+* ~~fix graph node enforcement of uid~~
+* ~~Delete node~~ 
+* ~~Partial graph traversal~~
+
 ## Documentation todo
 
 * ~~Add doc about node / graph creation~~
 * ~~Add documentation about graph nodes~~
 * ~~Add documentation about custom hook~~
 * ~~Add documentation Composed Visitor~~
-
-## Feature todo
-
-* ~~Delete node~~ 
-* ~~Partial graph traversal~~
+* Add documentation on sub_graph
 
 ## Testing todo
 
+* Test sub_graph
 * ~~Test Composed Visitor~~
 * ~~Custom hook~~

@@ -3,7 +3,7 @@
 
 python38.pkgs.buildPythonPackage rec {
   pname = "freexgraph";
-  version = "1.1.0";
+  version = "1.2.0";
 
   src = if (builtins.isNull use_revision || use_revision == "") then
     nix-gitignore.gitignoreSource [ ".git" ] ./.
