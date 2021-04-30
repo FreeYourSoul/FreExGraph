@@ -36,6 +36,8 @@ def _get_len(sorted_node_list: List[Tuple], with_progress_bar: bool) -> int:
 
 
 def _filter_graph_root_for_visitation(root: FreExNode, is_reversed: bool):
+    if root.graph_ref is None:
+        return [root]
     depth: int = root.depth
     sorted_node_list = list(nx.lexicographical_topological_sort(root.graph_ref))
     if is_reversed:
@@ -98,7 +100,10 @@ class AbstractVisitor:
         ) as pbar:
             pbar.set_description(f"Processing Visitor {type(self).__name__}")
             for node_id in sorted_node_list:
-                node = root.graph_ref.nodes[node_id]["content"]
+                if len(sorted_node_list) == 1:
+                    node = root
+                else:
+                    node = root.graph_ref.nodes[node_id]["content"]
 
                 # Trigger custom hook
                 for predicate, hook in self.__custom_hooks:
