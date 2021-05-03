@@ -207,6 +207,12 @@ def test_graph_node(valid_basic_execution_graph, visitor_test):
     assert visitor_test.inner_graph_started[0].startswith(id_graph)
     assert visitor_test.inner_graph_started == visitor_test.inner_graph_ended
 
+    # test find in graph node from root
+    finder = FindFirstVisitor(lambda n: n.id.startswith("id3"))
+    finder.visit(execution_graph.root)
+    assert finder.found()
+    assert finder.result.id.startswith("id3")
+
 
 def test_add_nodes(node_list_complex_graph, visitor_test):
     execution_graph = FreExGraph()

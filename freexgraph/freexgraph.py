@@ -39,6 +39,9 @@ class FreExNode:
     parents: Set[str]
     """Parents of the node to add """
 
+    extension_node: bool
+    """ """
+
     def __init__(
         self,
         uid: str = None,
@@ -46,8 +49,10 @@ class FreExNode:
         fork_id: Optional[str] = None,
         parents: Set[str] = None,
         graph_ref: nx.DiGraph = None,
+        extension_node: bool = False,
     ):
         self.parents = parents or set()
+        self.extension_node = extension_node
         self._graph_ref = graph_ref
         self._id = uid
         self._fork_id = fork_id
@@ -63,6 +68,8 @@ class FreExNode:
         from freexgraph.standard_visitor import is_standard_visitor
 
         if is_standard_visitor(visitor):
+            if self.extension_node:
+                self.accept(visitor)
             return visitor.visit_standard(self)
         return self.accept(visitor)
 
@@ -126,7 +133,9 @@ class GraphNode(FreExNode):
     def __init__(
         self, uid: str = None, *, graph: "FreExGraph", parents: Set[str] = None
     ):
-        super().__init__(uid=uid, parents=parents, graph_ref=graph._graph)
+        super().__init__(
+            uid=uid, parents=parents, graph_ref=graph._graph, extension_node=True
+        )
         self._graph_ex = graph
 
     def accept(self, visitor: AnyVisitor) -> bool:
