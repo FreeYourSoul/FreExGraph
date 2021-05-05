@@ -20,8 +20,9 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from copy import copy
-from typing import Optional, Union, Set, List, Any
+
+from copy import copy, deepcopy
+from typing import Optional, Union, Set, List, Any, Tuple
 
 import networkx as nx
 
@@ -37,7 +38,7 @@ class FreExNode:
     """Representation of the content of a node in the execution graph """
 
     parents: Set[str]
-    """Parents of the node to add """
+    """Parents of the node to add"""
 
     extension_node: bool
     """ """
@@ -121,6 +122,9 @@ class FreExNode:
         return self._graph_ref
 
 
+RemovedParent = Tuple[FreExNode, Set[str]]
+
+
 class RootNode(FreExNode):
     pass
 
@@ -163,29 +167,6 @@ def _remove_duplicated_node(nodes: List[FreExNode]) -> List[FreExNode]:
     return filtered_list
 
 
-def _continue_fork(
-    join_node_id: Optional[str], node: FreExNode, successors: List[str]
-) -> bool:
-    """check that the fork has to continue for the given node
-    :return: return true if the next is not the join node and thus fork continue, False otherwise
-    """
-    if join_node_id is None:
-        return True
-    if node.id == join_node_id:
-        return False
-
-    assert (
-        len(successors) > 0
-    ), f"Fork Join error {join_node_id}: node {node.id} reached (doesn't link with the join node)"
-
-    if any([join_node_id in ss for ss in successors]):
-        assert (
-            len(successors) == 1
-        ), f"Fork Join error {join_node_id} : all element from a fork should be joining uniquely the fork"
-        return False
-    return True
-
-
 class FreExGraph:
     """Execution Graph main class"""
 
@@ -201,6 +182,8 @@ class FreExGraph:
     @staticmethod
     def _make_node_id_with_fork(node_id: str, fork_id: str) -> str:
         """make a unique id for the new fork"""
+        if node_id == root_node:
+            return node_id
         return f"{node_id}::{fork_id}"
 
     def add_nodes(self, nodes: List[AnyFreExNode]) -> None:
@@ -290,14 +273,20 @@ class FreExGraph:
         return self._graph.nodes[node_id]["content"]
 
     def sub_graph(
-        self, from_node_id: str, to_nodes_id: Optional[List[str]] = None
-    ) -> "FreExGraph":
+        self,
+        from_node_id: str,
+        to_nodes_id: Optional[List[str]] = None,
+        return_removed_parents: bool = False,
+    ) -> Union["FreExGraph", Tuple["FreExGraph", List[RemovedParent]]]:
         """Utility method to retrieve a subgraph from a given node until the end of the graph or until one of the
         provided node is encountered.
 
         :param from_node_id: node from which the sub graph start
         :param to_nodes_id: nodes on which the sub graph stop, if none encountered, subgraph go until the leaf nodes
-        :return: a sub graph delimited by the provided nodes id
+        :param return_removed_parents: set to false by default, if set to true, return a second return tuple value that
+        contains the removed parents in the subgraph
+        :return: a sub graph delimited by the provided nodes id, if return_removed_parents set to true, also return a
+        tuple that represent Tuple[node_that_got_parents_deleted, deleted_parent_links_set]
         """
         from_node: FreExNode = self.get_node(from_node_id)
         assert (
@@ -310,7 +299,7 @@ class FreExGraph:
         def add_node_in_subgraph(current_node: FreExNode):
             if current_node.id in nodes_in_subgraph_id:
                 return
-            nodes_in_subgraph.append(current_node)
+            nodes_in_subgraph.append(deepcopy(current_node))
             nodes_in_subgraph_id.add(current_node.id)
             if to_nodes_id is not None and current_node.id in to_nodes_id:
                 return
@@ -324,12 +313,20 @@ class FreExGraph:
 
         add_node_in_subgraph(from_node)
 
+        saved_removal: List[RemovedParent] = []
+
         # cleanup parents
         for n in nodes_in_subgraph:
+            if return_removed_parents:
+                saved_removal.append(
+                    (n, {p for p in n.parents if p not in nodes_in_subgraph_id})
+                )
             n.parents = {p for p in n.parents if p in nodes_in_subgraph_id}
 
         sub_graph = FreExGraph()
         sub_graph.add_nodes(nodes_in_subgraph)
+        if return_removed_parents:
+            return sub_graph, saved_removal
         return sub_graph
 
     def fork_from_node(
@@ -345,21 +342,8 @@ class FreExGraph:
         > It is the user responsibility to ensure that those id doesn't collide.
 
         If the provided join_node doesn't exist, an exception is thrown.
-        If a join node is provided, all node from the provided one to the join node is duplicated. All last forked node
-        will depend on the join_node. The join node HAS to be the only node linking all node to be forked.
-
-        example:
-
-                                     ||
-                                  . id1 .
-                               //        \\
-                             id2         id3
-                               \\        //
-                                `  id4 `        id5
-                                   ||
-
-        With the graph above. if we fork from id1 and id4 as join, it works as id2 and id3 are joined on it. But if id5
-        where to be linked with id3 or id2, as id4 wouldn't be the only link possible. An assertion error would arise.
+        If a join node is provided, all node from the provided one until the join node is encountered are duplicated. if
+        the join node is not encountered, duplicate node until leaf
 
         side_note:
             ':' is used as a separator for the id and the fork_id to ensure a unique name. This is the reason why '::'
@@ -374,9 +358,6 @@ class FreExGraph:
         assert self._graph.has_node(
             forked_node.id
         ), f"Error fork of node {forked_node.id}, node to fork has to be in the execution graph"
-        assert not isinstance(
-            self.get_node(forked_node.id), GraphNode
-        ), f"Error fork of node {forked_node.id}: cannot fork a graph node"
         assert (
             forked_node.fork_id
         ), f"Error fork of node {forked_node.id}: doesn't have fork_id"
@@ -384,59 +365,56 @@ class FreExGraph:
             join_id
         ), f"Error fork of node {forked_node.id} with join_id {join_id}: join_id node doesn't exist in graph "
 
-        # list of all node that will need to be created (all are created at once with add_nodes)
-        all_forked_nodes_to_add: List[FreExNode] = []
-
-        # recursive internal function to copy a node and then copying all children
-        def fork_node(id_new_forked_node: str, to_fork: FreExNode) -> None:
-            new_node = type(to_fork)(
-                uid=id_new_forked_node,
-                parents=(
-                    to_fork.parents
-                    if to_fork.id != forked_node.id
-                    else self._graph.nodes[forked_node.id]["content"].parents
-                ),
-                graph_ref=forked_node.graph_ref,
-            )
-            new_node._fork_id = forked_node.fork_id
-            new_node._depth = to_fork.depth
-            all_forked_nodes_to_add.append(new_node)
-            all_suc = list(self._graph.successors(to_fork.id))
-            if not _continue_fork(join_id, to_fork, all_suc):
-                return
-            for successor in all_suc:
-                n = self.get_node(successor)
-                id_next_fork = self._make_node_id_with_fork(n.id, forked_node.fork_id)
-                if not self._graph.has_node(id_next_fork):
-                    fork_node(id_next_fork, n)
-
-        fork_node(
-            self._make_node_id_with_fork(forked_node.id, forked_node.fork_id),
-            forked_node,
+        join_node_list = [join_id] if join_id else []
+        sub_graph, removed_parents = self.sub_graph(
+            from_node_id=forked_node.id,
+            to_nodes_id=join_node_list,
+            return_removed_parents=True,
         )
-        all_forked_nodes_to_add = _remove_duplicated_node(all_forked_nodes_to_add)
-
-        # update parents links of all forks (to target their homologue forked and not the root one)
-        all_forked_id = [n.id for n in all_forked_nodes_to_add]
-        for node in all_forked_nodes_to_add:
-            if node.id != forked_node.id:
-                forked_parents = set()
-                for p in node.parents:
-                    # if parent is in the list of node that has been forked, add the fork name
-                    if any([n.startswith(p) for n in all_forked_id]):
-                        forked_parents.add(
-                            self._make_node_id_with_fork(p, forked_node.fork_id)
-                        )
-                    else:
-                        forked_parents.add(p)
-                node.parents = forked_parents
-
-        self.add_nodes(all_forked_nodes_to_add)
-
-        # Add links on the join node if any is set
+        sub_graph._graph.remove_node(root_node)
         if join_id is not None:
-            for node_id in all_forked_id:
-                self._graph.add_edge(node_id, join_id)
+            sub_graph._graph.remove_node(join_id)
+
+        # renaming all nodes (and remove useless root_node)
+        for node_to_fork_rename in [
+            sub_graph.get_node(n) for n in sub_graph.graph.nodes
+        ]:
+            if root_node in node_to_fork_rename.parents:
+                initial_graph_node = self.get_node(node_to_fork_rename.id)
+                if root_node not in initial_graph_node.parents:
+                    node_to_fork_rename.parents.remove(root_node)
+
+            node_to_fork_rename._fork_id = forked_node.fork_id
+            node_to_fork_rename._id = self._make_node_id_with_fork(
+                node_to_fork_rename.id, forked_node.fork_id
+            )
+            node_to_fork_rename.parents = {
+                self._make_node_id_with_fork(p, forked_node.fork_id)
+                for p in node_to_fork_rename.parents
+            }
+
+        # redo linking
+        for node, removed_parents in removed_parents:
+            node.parents.update(removed_parents)
+
+        self.add_nodes([sub_graph.get_node(n) for n in sub_graph.graph.nodes])
+
+    def replace_node(self, to_replace: FreExNode) -> None:
+        """Replace the node defined by the provided node id with the provided node, keeping the important data needed
+        for the graph consistency between the initial node and the new one.
+
+        :param to_replace: node to replace (use id property in order to retrieve the proper node to replace)
+        """
+        previous_node = self.get_node(to_replace.id)
+        assert (
+            previous_node is not None
+        ), f"Cannot replace node {to_replace.id} that is not in the graph"
+
+        to_replace._fork_id = previous_node.fork_id
+        to_replace._graph_ref = previous_node.graph_ref
+        to_replace._depth = previous_node.depth
+        to_replace.parents = previous_node.parents
+        self._graph.nodes[to_replace.id]["content"] = to_replace
 
     def __find_current_depth(self, parents: Set[str]) -> int:
         """

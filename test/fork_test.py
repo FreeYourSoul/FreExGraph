@@ -157,11 +157,20 @@ def test_fork_with_join_unlinked_with_join(node_test_class, visitor_test):
     visitor_test.visit(execution_graph.root)
     assert len(visitor_test.visited) == 11
 
-    with pytest.raises(AssertionError) as e:
-        execution_graph.fork_from_node(
-            node_test_class(id1, fork_id="chocobo"), join_id=id_join
-        )
-        assert "reached (doesn't link with the join node)" in e
+    execution_graph.fork_from_node(
+        node_test_class(id1, fork_id="chocobo"), join_id=id_join
+    )
+
+    visitor_test.visit(execution_graph.root)
+    assert len(visitor_test.visited) == 18
+
+    find = FindFirstVisitor(lambda k: k.id.startswith(f"{id_9}::chocobo"))
+    find.visit(execution_graph.root)
+    assert find.result is not None
+    assert len(find.result.parents) == 2
+    check_result = sorted(find.result.parents)
+    assert check_result[0].startswith("id6::chocobo")
+    assert check_result[1].startswith("id8")
 
 
 def test_fork_with_join_unlinked_with_join_2(node_test_class, visitor_test):
@@ -176,27 +185,9 @@ def test_fork_with_join_unlinked_with_join_2(node_test_class, visitor_test):
     visitor_test.visit(execution_graph.root)
     assert len(visitor_test.visited) == 11
 
-    with pytest.raises(AssertionError) as e:
-        execution_graph.fork_from_node(
-            node_test_class(id1, fork_id="chocobo"), join_id=id_join
-        )
-        assert "reached (doesn't link with the join node)" in e
-
-
-def test_fork_with_other_link_than_join(node_test_class, visitor_test):
-
-    id_9 = "id_9"
-
-    execution_graph = make_fork_graph(node_test_class)
-
-    # make id_6 (in the fork) having more that just the join module as only node
-    execution_graph.add_node(node_test_class(id_9, parents={id6}))
+    execution_graph.fork_from_node(
+        node_test_class(id1, fork_id="chocobo"), join_id=id_join
+    )
 
     visitor_test.visit(execution_graph.root)
-    assert len(visitor_test.visited) == 11
-
-    with pytest.raises(AssertionError) as e:
-        execution_graph.fork_from_node(
-            node_test_class(id1, fork_id="chocobo"), join_id=id_join
-        )
-        assert " all element from a fork should be joining uniquely the fork" in e
+    assert len(visitor_test.visited) == 18

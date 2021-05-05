@@ -18,8 +18,8 @@ It provide:
   * [Template Example](#template-example)
   * [Graph creation](#graph-creation)
   * [Graph Node](#graph-node) 
-  * [Fork mechanism](#fork) 
   * [Sub graph](#sub-graph) 
+  * [Fork mechanism](#fork) 
 * [Visitors](#visitors)
     * [Visitor hook](#abstract-visitor-hooks)
     * [Standard visitors](#standard-visitor-provided-by-freexgraph)
@@ -212,6 +212,52 @@ execution_graph.add_node(GraphNode(id_graph, parents={id1}, graph=inner_graph))
 execution_graph.add_node(NodeForTest(idc, parents={id1, id_graph}))
 ```
 
+### Sub-Graph
+
+A method exist in the `FreExGraph` class in order to make sub graph out of the graph.
+The signature is the following:
+```python
+def sub_graph(
+    self, from_node_id: str, to_nodes_id: Optional[List[str]] = None
+) -> FreExGraph:
+```
+
+Providing a node to start the subgraph and optionally a set of node where you want the sub graph to end. If no node matching the ``to_nodes_id`` is encountered, the subgraph go until the leaf nodes of the graph.
+The subgraph nodes are hard copy of the node of the initial graph. Modification to a subgraph doesn't impact its original.
+This feature may be used as a fork mechanism (as seen above). It is easier to manipulate and monitor.
+
+Usage Example:
+
+```python
+```python
+#            id0
+#             |
+#       .___ id1 ___.______.           
+#      /      |      \      \
+#     id2    id3     id4    ida
+#     |     /   \      |
+#     |   id5   id6    |     
+#     \     \   /     /
+#      `---- id7 ----'        
+#          /     \
+#        id8     id9
+#
+
+# If we decide to fork (with the fork id f1) from the node id4
+sub_graph: FreExGraph = execution_graph.sub_graph(from_node_id="id1", to_nodes_id=["id7"]))
+
+# The sub graph would be the following
+
+#       .___ id1 ___.______.           
+#      /      |      \      \
+#     id2    id3     id4    ida
+#     |     /   \      |
+#     |   id5   id6    |     
+#     \     \   /     /
+#      `---- id7 ----'  
+```
+
+
 ### Fork
 
 FreExGraph provide a fork mechanism. It provides an easy way to duplicate a graph from a given node until the end of the graph (or to a specific node that would be used as a join).
@@ -252,26 +298,12 @@ execution_graph.fork_from_node(FreExNode(uid="id4", fork_id="f1"))
 ```
 Obviously if you want the node id4::f1 (which is of type FreExNode as you asked) to ever be visited by one of your visitor, you should provide your own node implementation.
 
-It is also possible to provide a join node. It will be a node used as join for the fork in order to not have to fork the whole graph from the source of the fork. It is usefull if you have to multiply a big chunk of execution graph because one node has to change some internal values (in experimentation fields, it can be useful for parameter explorations).
+It is also possible to provide a join node. It will be a node used as join for the fork in order to not have to fork the whole graph from the source of the fork. 
+It is useful if you have to multiply a big chunk of execution graph because one node has to change some internal values (in experimentation fields, it can be useful for parameter explorations).
 
-> **Try avoiding forks** : This is a mecanism that can be useful in certain cases (the main one would be parameter exploration on an experimentation) But when it comes to map reduce for example, it is advised to manually fo the nodes you want instead (improve readibility of what you are doing when making your graph). A chaining of fork can start being very hard to understand for the user.
+Under the hook, fork is using sub_graph and is reconstructing the links of the subgraph directly into the graph (and extends its name and parents name).
 
-But if you want to do a map reduce with a fork, it is do-able by setting the join_id to the `fork_from_node` method. The join_id has to be an existing node on which, for every parents that are part of the fork has only this join node as child.
 See [test using this mechanism](https://github.com/FreeYourSoul/FreExGraph/blob/ae707cf0fcb8486bde783cd0c7fe67217a56b3d2/test/fork_test.py#L41-L66) for more details
-
-### Sub-Graph
-
-A method exist in the `FreExGraph` class in order to make sub graph out of the graph.
-The signature is the following:
-```python
-def sub_graph(
-    self, from_node_id: str, to_nodes_id: Optional[List[str]] = None
-) -> FreExGraph:
-```
-
-Providing a node to start the subgraph and optionally a set of node where you want the sub graph to end. If no node matching the ``to_nodes_id`` is encountered, the subgraph go until the leaf nodes of the graph.
-
-This feature may be used as a fork mechanism (as seen above). It is easier to manipulate and monitor.
 
 ## Visitors
 

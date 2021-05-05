@@ -41,12 +41,12 @@ class FindFirstVisitor(AbstractVisitor):
 
     _predicate: Callable
 
-    def __init__(self, predicate: Callable):
+    def __init__(self, predicate: Callable, **kwargs):
         """
         :param predicate: has to take an argument (FreExNode type) and return a bool, will determine what result is
         expected from the graph
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self._predicate = predicate
 
     def visit_standard(self, node: FreExNode) -> bool:
@@ -69,8 +69,8 @@ class FindAllVisitor(AbstractVisitor):
 
     _predicate: Callable
 
-    def __init__(self, predicate: Callable):
-        super().__init__()
+    def __init__(self, predicate: Callable, **kwargs):
+        super().__init__(**kwargs)
         self.results = []
         self._predicate = predicate
 

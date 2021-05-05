@@ -24,7 +24,7 @@
 import pytest
 import uuid
 
-from typing import List
+from typing import List, Any
 
 from freexgraph import FreExGraph, FreExNode, AnyVisitor, AbstractVisitor
 from freexgraph.freexgraph import GraphNode
@@ -75,6 +75,12 @@ def visitor_test():
 
 
 class NodeForTest(FreExNode):
+
+    def __init__(self, uid: str = None, metadata: Any = None, **kwargs):
+        kwargs["uid"] = uid
+        super().__init__(**kwargs)
+        self.metadata = metadata
+
     def accept(self, visitor: AnyVisitor) -> bool:
         return visitor.testing_visit(self)
 

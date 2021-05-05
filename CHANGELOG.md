@@ -1,7 +1,14 @@
 # Changelogs
 
-## Version 1.2.0
-(Released : April 30, 2021) : tag 1.2.0
+## Version 1.2.2
+(Released : April 30, 2021) : tag 1.2.2
+* Improve forking mechanism to match with sub_graph
+* Improve fork/sub_graph documentation
+* Forward kwargs on standard visitor to be able to use BaseVisitor constructor
+* Add replace node utility
+
+## Version 1.2.0 / Version 1.2.1
+(Released : April 30, 2021) : tag 1.2.0/1.2.1
 * Add sub_graph
 * Fix bug (forced to set an id on GraphNode constructor)
 * Fix bug (standalone node without graph visitation failed)
