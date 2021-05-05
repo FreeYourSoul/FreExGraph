@@ -154,19 +154,6 @@ AnyFreExNode = Union[FreExNode, GraphNode]
 """Utility to simplify code"""
 
 
-def _remove_duplicated_node(nodes: List[FreExNode]) -> List[FreExNode]:
-    """return a copy of provided the list without duplicates, a duplicate is defined by its id"""
-    filtered_list = []
-    for n in nodes:
-        found = False
-        for in_list in filtered_list:
-            if n.id == in_list.id:
-                found = True
-        if not found:
-            filtered_list.append(n)
-    return filtered_list
-
-
 class FreExGraph:
     """Execution Graph main class"""
 
@@ -182,8 +169,6 @@ class FreExGraph:
     @staticmethod
     def _make_node_id_with_fork(node_id: str, fork_id: str) -> str:
         """make a unique id for the new fork"""
-        if node_id == root_node:
-            return node_id
         return f"{node_id}::{fork_id}"
 
     def add_nodes(self, nodes: List[AnyFreExNode]) -> None:
@@ -339,21 +324,25 @@ class FreExGraph:
         id will be appended with the fork_id set on the forked_node. For this reason it is required to have a fork_id
         set on the forked_node.
 
-        > It is the user responsibility to ensure that those id doesn't collide.
-
         If the provided join_node doesn't exist, an exception is thrown.
         If a join node is provided, all node from the provided one until the join node is encountered are duplicated. if
         the join node is not encountered, duplicate node until leaf
+
+        warning:
+            It is the user responsibility to ensure that those id doesn't collide.
 
         side_note:
             ':' is used as a separator for the id and the fork_id to ensure a unique name. This is the reason why '::'
             is reserved and cannot be used.
 
+        raise Assertion failure:
+            * if the node defined by forked_node.id doesn't exist in the graph.
+            * if the forked_node doesn't contains a fork_id.
+            * if a join_node is provided but does not exist.
+
         :param forked_node: node to replace the fork one, its fork_id field has to be set
-        :param join_id: node to stop duplication (used for map_reduce)
-        :exception: Assertion failure in case that the node defined by forked_node.id doesn't exist in the graph or is a
-         GraphNode, or if the forked_node doesn't contains a fork_id. Assertion failure if a join_node is provided but
-         does not exist or that the join_node is not linking all last node to be forked.
+        :param join_id: node to stop duplication (used for map_reduce) if encountered
+
         """
         assert self._graph.has_node(
             forked_node.id
@@ -365,10 +354,9 @@ class FreExGraph:
             join_id
         ), f"Error fork of node {forked_node.id} with join_id {join_id}: join_id node doesn't exist in graph "
 
-        join_node_list = [join_id] if join_id else []
         sub_graph, removed_parents = self.sub_graph(
             from_node_id=forked_node.id,
-            to_nodes_id=join_node_list,
+            to_nodes_id=[join_id] if join_id else [],
             return_removed_parents=True,
         )
         sub_graph._graph.remove_node(root_node)

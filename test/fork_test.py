@@ -191,3 +191,46 @@ def test_fork_with_join_unlinked_with_join_2(node_test_class, visitor_test):
 
     visitor_test.visit(execution_graph.root)
     assert len(visitor_test.visited) == 18
+
+
+def test_fork_without_fork_id(node_test_class, visitor_test):
+    execution_graph = make_fork_graph(node_test_class)
+    visitor_test.visit(execution_graph.root)
+
+    with pytest.raises(AssertionError) as e:
+        execution_graph.fork_from_node(
+            node_test_class(id1, fork_id=None), join_id=id_join
+        )
+        assert f"Error fork of node {id1}: doesn't have fork_id" == e
+
+
+def test_fork_with_inexistant_join_id(node_test_class, visitor_test):
+    execution_graph = make_fork_graph(node_test_class)
+    visitor_test.visit(execution_graph.root)
+
+    join_not_exist = "ThisDoesntExistAtAll"
+
+    with pytest.raises(AssertionError) as e:
+        execution_graph.fork_from_node(
+            node_test_class(id1, fork_id="chocobo"), join_id=join_not_exist
+        )
+        assert (
+            f"Error fork of node {id1} with join_id {join_not_exist}: join_id node doesn't exist in graph "
+            == e
+        )
+
+
+def test_fork_with_inexistant_node(node_test_class, visitor_test):
+    execution_graph = make_fork_graph(node_test_class)
+    visitor_test.visit(execution_graph.root)
+
+    id_not_exist = "ThisDoesntExistAtAll"
+
+    with pytest.raises(AssertionError) as e:
+        execution_graph.fork_from_node(
+            node_test_class(id_not_exist, fork_id="chocobo"), join_id=id_join
+        )
+        assert (
+            f"Error fork of node {id_not_exist}, node to fork has to be in the execution graph"
+            == e
+        )

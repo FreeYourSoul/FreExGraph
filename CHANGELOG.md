@@ -1,7 +1,7 @@
 # Changelogs
 
 ## Version 1.2.2
-(Released : April 30, 2021) : tag 1.2.2
+(Released : May 06, 2021) : tag 1.2.2
 * Improve forking mechanism to match with sub_graph
 * Improve fork/sub_graph documentation
 * Forward kwargs on standard visitor to be able to use BaseVisitor constructor

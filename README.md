@@ -229,7 +229,6 @@ This feature may be used as a fork mechanism (as seen above). It is easier to ma
 Usage Example:
 
 ```python
-```python
 #            id0
 #             |
 #       .___ id1 ___.______.           
