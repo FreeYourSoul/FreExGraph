@@ -80,6 +80,8 @@ class FreExNode:
 
     def get_successors(self) -> List["FreExNode"]:
         """Retrieve nodes depending on the current one"""
+        if self._graph_ref is None:
+            return []
         return [
             self._graph_ref.nodes[node_id]["content"]
             for node_id in self._graph_ref.successors(self._id)
@@ -87,6 +89,8 @@ class FreExNode:
 
     def get_predecessors(self) -> List["FreExNode"]:
         """Retrieve nodes the current node depends on"""
+        if self._graph_ref is None:
+            return []
         return [
             self._graph_ref.nodes[node_id]["content"]
             for node_id in self._graph_ref.predecessors(self._id)

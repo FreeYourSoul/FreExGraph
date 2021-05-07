@@ -178,8 +178,7 @@ class VisitorComposer:
         assert all(reversed_action) or not any(
             reversed_action
         ), "Cannot compose reversed and non reversed Visitor together"
-
-        self._is_reversed = reversed_action[0]
+        self._is_reversed = reversed_action[0] if len(reversed_action) > 0 else False
         self._with_progress_bar = progress_bar_on_actions
         self._action_composed = actions
         self._sequential_before = before or []
@@ -192,8 +191,12 @@ class VisitorComposer:
             if not to_continue:
                 return False
 
+        for a in self._action_composed:
+            a.hook_start()
         if not self._composed_visit(root):
             return False
+        for a in self._action_composed:
+            a.hook_end()
 
         for b in self._sequential_after:
             to_continue &= b.visit(root)
