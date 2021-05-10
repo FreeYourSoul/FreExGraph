@@ -1,5 +1,9 @@
 # Changelogs
 
+## Version 1.2.3
+(Released : May 11, 2021) : tag 1.2.3
+* Fix bug on Composed visitation (multiple start hook called)
+
 ## Version 1.2.2
 (Released : May 06, 2021) : tag 1.2.2
 * Improve forking mechanism to match with sub_graph
