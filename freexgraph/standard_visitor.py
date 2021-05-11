@@ -26,6 +26,8 @@ import networkx as nx
 
 from typing import Callable, Optional, List
 
+from networkx import NetworkXNoCycle
+
 from freexgraph import AbstractVisitor, FreExNode
 from freexgraph.freexgraph import root_node
 
@@ -38,7 +40,7 @@ class StandardVisitor:
     _extension_depth_limit: Optional[int] = None
 
     def visit_standard(self, node: FreExNode) -> bool:
-        raise NotImplemented(
+        raise NotImplementedError(
             "visit_standard is not implemented for this standard visitor"
         )
 
@@ -154,7 +156,7 @@ class ValidateGraphIntegrity(AbstractVisitor, StandardVisitor):
                 assert (
                     len(list(nx.find_cycle(node.graph_ref))) == 0
                 ), "Error on graph : Cycle found"
-            except:
+            except NetworkXNoCycle:
                 pass
             self._first_check = False
 
