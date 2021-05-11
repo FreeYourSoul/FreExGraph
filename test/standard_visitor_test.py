@@ -21,11 +21,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from freexgraph import FreExGraph
+from freexgraph import FreExGraph, AbstractVisitor
 from freexgraph.standard_visitor import (
     ValidateGraphIntegrity,
     FindFirstVisitor,
     FindAllVisitor,
+    StandardVisitor,
 )
 
 
@@ -108,3 +109,15 @@ def test_find_all_visitor_depth_limit_2(valid_graph_with_subgraphs):
     v = FindAllVisitor(lambda node: node.id[0:2] == "T2", extension_depth_limit=2)
     v.visit(valid_graph_with_subgraphs.root)
     assert v.count() == 3
+
+
+def test_standard_visitor_without_implementation(valid_graph_with_subgraphs):
+    class BadStandard(AbstractVisitor, StandardVisitor):
+        pass
+
+    v = BadStandard()
+    try:
+        v.visit(valid_graph_with_subgraphs.root)
+        assert False, "Shouldn't arrive here"
+    except NotImplementedError:
+        assert True
