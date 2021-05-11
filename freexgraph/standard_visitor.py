@@ -20,6 +20,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from contextlib import contextmanager
 
 import networkx as nx
 
@@ -29,7 +30,37 @@ from freexgraph import AbstractVisitor, FreExNode
 from freexgraph.freexgraph import root_node
 
 
-class FindFirstVisitor(AbstractVisitor):
+class StandardVisitor:
+
+    _current_extension_depth: int = 0
+
+    # extension depth to be executed on standard visitors (only standards visitor)
+    _extension_depth_limit: Optional[int] = None
+
+    def visit_standard(self, node: FreExNode) -> bool:
+        raise NotImplemented(
+            "visit_standard is not implemented for this standard visitor"
+        )
+
+    def extension_depth_threshold(self) -> bool:
+        """:return: True if the visitor can apply an extension, False if the threshold of depth set is too high"""
+        return (
+            self._extension_depth_limit is None
+            or self._extension_depth_limit > self._current_extension_depth
+        )
+
+    @contextmanager
+    def inc_extension_depth(self):
+        """Internal usage only: increment and decrement the extension depth for the time of the context"""
+        if self._extension_depth_limit is None:
+            yield
+        else:
+            self._current_extension_depth += 1
+            yield
+            self._current_extension_depth -= 1
+
+
+class FindFirstVisitor(AbstractVisitor, StandardVisitor):
     """Find the first occurrence of a node that follow the given predicate
 
     result value is set to a reference to the value found.
@@ -41,13 +72,18 @@ class FindFirstVisitor(AbstractVisitor):
 
     _predicate: Callable
 
-    def __init__(self, predicate: Callable, **kwargs):
+    def __init__(
+        self, predicate: Callable, extension_depth_limit: Optional[int] = None, **kwargs
+    ):
         """
         :param predicate: has to take an argument (FreExNode type) and return a bool, will determine what result is
-        expected from the graph
+         returned from the graph
+        :param extension_depth_limit: optional limitation of extension depth for the visitation, if 0, only the current
+         graph is executed
         """
         super().__init__(**kwargs)
         self._predicate = predicate
+        self._extension_depth_limit = extension_depth_limit
 
     def visit_standard(self, node: FreExNode) -> bool:
         if node.id != root_node and self._predicate(node):
@@ -63,16 +99,25 @@ class FindFirstVisitor(AbstractVisitor):
         return self.result is not None
 
 
-class FindAllVisitor(AbstractVisitor):
+class FindAllVisitor(AbstractVisitor, StandardVisitor):
     results: List[FreExNode]
     """reference list of nodes found after visitation that follow the predicate, stay None if none found """
 
     _predicate: Callable
 
-    def __init__(self, predicate: Callable, **kwargs):
+    def __init__(
+        self, predicate: Callable, extension_depth_limit: Optional[int] = None, **kwargs
+    ):
+        """
+        :param predicate: has to take an argument (FreExNode type) and return a bool, will determine what results are
+         returned from the graph
+        :param extension_depth_limit: optional limitation of extension depth for the visitation, if 0, only the current
+         graph is executed
+        """
         super().__init__(**kwargs)
         self.results = []
         self._predicate = predicate
+        self._extension_depth_limit = extension_depth_limit
 
     def visit_standard(self, node: FreExNode) -> bool:
         if node.id != root_node and self._predicate(node):
@@ -86,7 +131,7 @@ class FindAllVisitor(AbstractVisitor):
         return len(self.results)
 
 
-class ValidateGraphIntegrity(AbstractVisitor):
+class ValidateGraphIntegrity(AbstractVisitor, StandardVisitor):
     """Validate the integrity of the graph.
 
     All the data are added if the API is used correctly, but if any bypass has been used (which you should never do)
@@ -135,12 +180,3 @@ class ValidateGraphIntegrity(AbstractVisitor):
             ), f"Error on node {node}, parent {p} doesn't exist in the graph"
 
         return True
-
-
-def is_standard_visitor(visitor_instance):
-    return any(
-        [
-            isinstance(visitor_instance, c)
-            for c in [ValidateGraphIntegrity, FindAllVisitor, FindFirstVisitor]
-        ]
-    )

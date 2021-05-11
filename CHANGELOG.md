@@ -44,21 +44,8 @@
 
 ## Feature todo
 
-* ~~Implement sub_graph~~
-* ~~fix graph node enforcement of uid~~
-* ~~Delete node~~ 
-* ~~Partial graph traversal~~
+* ~~Add recursive depth limitation in standards Find Visitors~~
 
 ## Documentation todo
 
-* ~~Add documentation on sub_graph~~
-* ~~Add doc about node / graph creation~~
-* ~~Add documentation about graph nodes~~
-* ~~Add documentation about custom hook~~
-* ~~Add documentation Composed Visitor~~
-
-## Testing todo
-
-* ~~Test sub_graph~~
-* ~~Test Composed Visitor~~
-* ~~Custom hook~~
+* Add documentation on graph node

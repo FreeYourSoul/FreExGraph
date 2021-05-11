@@ -224,3 +224,34 @@ def test_complete_composition(valid_complex_graph):
         all_action, before=all_before, after=all_after, progress_bar_on_actions=True
     )
     visitor_composed.visit(valid_complex_graph.root)
+
+
+def test_start_end_hook_count_composed_visitor(valid_graph_with_subgraphs):
+    from unittest.mock import MagicMock
+
+    before_1 = MagicMock()
+    before_2 = MagicMock()
+    act1 = MagicMock()
+    act2 = MagicMock()
+    act3 = MagicMock()
+    after_1 = MagicMock()
+    after_2 = MagicMock()
+    visitor_composed = VisitorComposer(
+        [act1, act2, act3], before=[before_1, before_2], after=[after_1, after_2]
+    )
+    visitor_composed.visit(valid_graph_with_subgraphs.root)
+
+    assert act1.hook_start.call_count == 1
+    assert act1.hook_end.call_count == 1
+
+    assert act2.hook_start.call_count == 1
+    assert act2.hook_end.call_count == 1
+
+    assert act3.hook_start.call_count == 1
+    assert act3.hook_end.call_count == 1
+
+    # simple visit call makes it works fine for the hook start and end
+    assert after_1.visit.call_count == 1
+    assert after_2.visit.call_count == 1
+    assert before_1.visit.call_count == 1
+    assert before_2.visit.call_count == 1

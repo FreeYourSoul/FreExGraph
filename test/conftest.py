@@ -75,7 +75,6 @@ def visitor_test():
 
 
 class NodeForTest(FreExNode):
-
     def __init__(self, uid: str = None, metadata: Any = None, **kwargs):
         kwargs["uid"] = uid
         super().__init__(**kwargs)
@@ -156,3 +155,46 @@ def valid_complex_graph():
     execution_graph = FreExGraph()
     execution_graph.add_nodes(unordered_node_list_for_complex_graph())
     yield execution_graph
+
+
+@pytest.fixture(scope="function")
+def valid_graph_with_subgraphs():
+    #
+    #            T0
+    #            │
+    # ┌──────────▼─────────┐
+    # │         T1         │
+    # │         │ │ ┌────┐ │
+    # │    T2◄──┘ └─► T23│ │
+    # │    │ │      │ │  │ │
+    # │    │ │      │ ▼  │ │
+    # │T4◄─┘ └►T5   │ T26│ │
+    # │             └────┘ │
+    # └────────────────────┘
+
+    t0 = NodeForTest("T0")
+
+    g3_6 = FreExGraph()
+    g3_6.add_nodes(
+        [
+            NodeForTest("T23"),
+            NodeForTest("T26", parents={"T23"}),
+        ]
+    )
+    graph_3_6 = GraphNode("graph-3_6", graph=g3_6, parents={"T1"})
+
+    gbig = FreExGraph()
+    gbig.add_nodes(
+        [
+            NodeForTest("T1"),
+            NodeForTest("T2", parents={"T1"}),
+            NodeForTest("T4", parents={"T2"}),
+            NodeForTest("T5", parents={"T2"}),
+            graph_3_6,
+        ]
+    )
+    graph_big = GraphNode("graph_big", graph=gbig, parents={"T0"})
+
+    result = FreExGraph()
+    result.add_nodes([t0, graph_big])
+    return result

@@ -90,3 +90,21 @@ def test_count_visitor(valid_basic_execution_graph):
     assert v.count() == 2
     assert v.results[0].id.startswith("id4")
     assert v.results[1].id.startswith("id5")
+
+
+def test_find_all_visitor_depth_limit_0(valid_graph_with_subgraphs):
+    v = FindAllVisitor(lambda node: node.id[0:2] == "T2", extension_depth_limit=0)
+    v.visit(valid_graph_with_subgraphs.root)
+    assert v.count() == 0
+
+
+def test_find_all_visitor_depth_limit_1(valid_graph_with_subgraphs):
+    v = FindAllVisitor(lambda node: node.id[0:2] == "T2", extension_depth_limit=1)
+    v.visit(valid_graph_with_subgraphs.root)
+    assert v.count() == 1
+
+
+def test_find_all_visitor_depth_limit_2(valid_graph_with_subgraphs):
+    v = FindAllVisitor(lambda node: node.id[0:2] == "T2", extension_depth_limit=2)
+    v.visit(valid_graph_with_subgraphs.root)
+    assert v.count() == 3

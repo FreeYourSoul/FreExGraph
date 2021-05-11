@@ -66,11 +66,12 @@ class FreExNode:
 
     def apply_accept_(self, visitor: AnyVisitor) -> bool:
         """do not override. Internal accept making the dispatch with standard visitors"""
-        from freexgraph.standard_visitor import is_standard_visitor
+        from freexgraph.standard_visitor import StandardVisitor
 
-        if is_standard_visitor(visitor):
-            if self.extension_node:
-                self.accept(visitor)
+        if isinstance(visitor, StandardVisitor):
+            if self.extension_node and visitor.extension_depth_threshold():
+                with visitor.inc_extension_depth():
+                    self.accept(visitor)
             return visitor.visit_standard(self)
         return self.accept(visitor)
 

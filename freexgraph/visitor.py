@@ -72,7 +72,12 @@ class AbstractVisitor:
     # List of Predicate/Hook
     __custom_hooks: List[Tuple[Callable, Callable]]
 
-    def __init__(self, *, with_progress_bar: bool = False, is_reversed: bool = False):
+    def __init__(
+        self,
+        *,
+        with_progress_bar: bool = False,
+        is_reversed: bool = False,
+    ):
         """Base class instantiation
 
         :param with_progress_bar: have a terminal tqdm progression bar while traversing the graph
@@ -168,11 +173,10 @@ class VisitorComposer:
         progress_bar_on_actions: bool = False,
     ):
         """
-
-        :param actions:
-        :param before:
-        :param after:
-        :param progress_bar_on_actions:
+        :param actions: list of visitor which will be executed together
+        :param before: list of visitor which will be sequentially executed before action
+        :param after: list of visitor which will be sequentially executed after action
+        :param progress_bar_on_actions: set to True to enable verbosity of the progress bar
         """
         reversed_action: List[bool] = [rev.is_reversed for rev in actions]
         assert all(reversed_action) or not any(

@@ -34,4 +34,5 @@ import freexgraph.standard_visitor
 def version() -> str:
     """Retrieve used version of FreExGraph library"""
     from freexgraph._version import __version__
+
     return __version__

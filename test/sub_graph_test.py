@@ -115,7 +115,9 @@ def test_sub_graph_with_to_node_not_found(valid_complex_graph, visitor_test):
     #                     /,_____/   \
     #                    L             M
 
-    sub_graph: FreExGraph = valid_complex_graph.sub_graph(from_node_id="F", to_nodes_id="A")
+    sub_graph: FreExGraph = valid_complex_graph.sub_graph(
+        from_node_id="F", to_nodes_id="A"
+    )
 
     visitor_test.visit(sub_graph.root)
 
