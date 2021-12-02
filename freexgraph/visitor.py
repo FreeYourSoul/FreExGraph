@@ -212,21 +212,55 @@ class VisitorComposer:
     def _composed_visit(self, root: FreExNode) -> bool:
         sorted_node_list = _filter_graph_root_for_visitation(root, self._is_reversed)
 
+        len_tqdm = len(root.graph_ref)
+        print(f"LEN >>>> {len_tqdm}")
         with tqdm(
             total=_get_len(sorted_node_list, self._with_progress_bar),
             disable=not self._with_progress_bar,
         ) as pbar:
-            pbar.set_description("Processing Composed Visitor")
+            pbar.set_description(f"{'Processing Composed Visitor':<40}")
+            progress_bars = self._produce_pg_bars(len_tqdm)
 
             for node_id in sorted_node_list:
                 # do the visitation for the node on each action visitor
                 for action_visitor in self._action_composed:
+                    self._progress_pg_bars(progress_bars, node_id)
                     if not root.graph_ref.nodes[node_id]["content"].apply_accept_(
                         action_visitor
                     ):
+                        self._close_pg_bars(progress_bars)
                         return False
 
                 pbar.set_postfix({"node": node_id})
                 pbar.update()
-
+        self._close_pg_bars(progress_bars)
         return True
+
+    def _produce_pg_bars(self, tqdm_len):
+        if not self._with_progress_bar:
+            return []
+        bars = []
+        for i in range(len(self._action_composed)):
+            bar = tqdm(
+                total=tqdm_len,
+                leave=True,
+                position=1,
+                desc="Visitor {0:<32}".format(type(self._action_composed[i]).__name__),
+            )
+            bar.refresh()
+            bars.append(bar)
+        return bars
+
+    def _progress_pg_bars(self, pg_bars, node_id):
+        if not self._with_progress_bar:
+            return
+        for pbar in pg_bars:
+            pbar.set_postfix({"node": node_id})
+            pbar.update()
+            pbar.refresh()
+
+    def _close_pg_bars(self, pg_bars):
+        if not self._with_progress_bar:
+            return
+        for pbar in pg_bars:
+            pbar.close()

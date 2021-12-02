@@ -64,9 +64,17 @@ class FreExNode:
     _graph_ref: nx.DiGraph = None
     _depth: int = 0
 
-    def apply_accept_(self, visitor: AnyVisitor) -> bool:
+    def __len__(self):
+        return 1
+
+    def apply_accept_(self, visitor: AnyVisitor, pbar=None) -> bool:
         """do not override. Internal accept making the dispatch with standard visitors"""
         from freexgraph.standard_visitor import StandardVisitor
+
+        if pbar is not None:
+            pbar.set_postfix({"node": self._id})
+            pbar.update()
+            pbar.refresh()
 
         if isinstance(visitor, StandardVisitor):
             if self.extension_node and visitor.extension_depth_threshold():

@@ -256,6 +256,36 @@ sub_graph: FreExGraph = execution_graph.sub_graph(from_node_id="id1", to_nodes_i
 #      `---- id7 ----'  
 ```
 
+### Implement your own extension node
+
+It is possible to create your own node that would contain other node (and thus custom their way of doing a visitation). For instance if you want to implement a taskgroup (a node that contains a list of task not linked with any other node in the graph). It would be possible. Here is a simple implentations of such a node.
+
+```python
+class MyTaskGroupNode(InaitBaseNode):
+
+    node_group : List[FreExNode]
+  
+    def __init__(self, node_name: str):
+      super().__init__(node_name, extension_node=True)
+        
+    def accept(self, visitor: AbstractVisitor) -> bool:
+        for node in self.node_group:
+            node.taskgroup_ref = self
+            if not visitor.apply_visitation_(node):
+                return False
+        return True        
+
+    def __len__(self):
+        return len(self.node_group)
+```
+
+You need to note the following:
+
+* You need to set the variable `extension_node` variable from FreExNode to `True` in order to specify to freexgraph that your node is a custom extensioone
+* You need to use the function `apply_visitation_` (**NOT** `visit` as the visit function apply a hook_start and hook_end that you wouldn't expect, especially if, as recommended, you re-initialize your visitor in the hook_start step) on each node that your extension node is... extending :p. 
+* You need to implement a `__len__` method in order to have some standard visitor and the tqdm implementation to work properly, this len method has to return the number of element that will be visited by visiting your extension node 
+
+
 
 ### Fork
 
@@ -369,6 +399,15 @@ v = FindAllVisitor(lambda node: node.id[0:3] > "id3")
 v.visit(graph_above.root)
 assert v.count() == 3
 assert len(v.results) == 3
+```
+
+* **LenCalculatorVisitor** : A visitor that retrieve the actual size (number of node visited) by a freexgraph visitation. (This visitor use the number from the __ len __ function of extended node)
+```python
+from freexgraph.standard_visitor import FindAllVisitor
+
+v = LenCalculatorVisitor()
+v.visit(graph_above.root)
+assert v.result == 6
 ```
 
 * **ValidateGraphIntegrity**: A visitor that validate that the graph is not illegal (every parents of every node exist in the graph, no infinite recursion of dependency etc...).

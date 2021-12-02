@@ -27,6 +27,7 @@ from freexgraph.standard_visitor import (
     FindFirstVisitor,
     FindAllVisitor,
     StandardVisitor,
+    LenCalculatorVisitor,
 )
 
 
@@ -121,3 +122,10 @@ def test_standard_visitor_without_implementation(valid_graph_with_subgraphs):
         assert False, "Shouldn't arrive here"
     except NotImplementedError:
         assert True
+
+
+def test_standard_len_calculator(valid_graph_with_subgraphs):
+    # T0 + T1 + T2 + T4 + T5 + T23 + T26 + wrapper_23&26 + wrapper_1&2&4&5&wrapper = 9 nodes
+    v = LenCalculatorVisitor()
+    v.visit(valid_graph_with_subgraphs.root)
+    assert v.result == 9

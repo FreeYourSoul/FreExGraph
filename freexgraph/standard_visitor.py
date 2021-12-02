@@ -133,6 +133,23 @@ class FindAllVisitor(AbstractVisitor, StandardVisitor):
         return len(self.results)
 
 
+class LenCalculatorVisitor(AbstractVisitor, StandardVisitor):
+    result: int
+    """calculate the length of the graph"""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.result = 0
+
+    def visit_standard(self, node: FreExNode) -> bool:
+        if node.id != root_node:
+            self.result += 1
+        return True
+
+    def hook_start(self):
+        self.result = 0
+
+
 class ValidateGraphIntegrity(AbstractVisitor, StandardVisitor):
     """Validate the integrity of the graph.
 
