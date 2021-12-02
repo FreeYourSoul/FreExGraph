@@ -125,7 +125,7 @@ def test_visitation(valid_basic_execution_graph, visitor_test, node_test_class):
     )
 
     node_5 = valid_basic_execution_graph.get_node(id5)
-    assert node_5.metadata is "ChocoboForTheWin"
+    assert node_5.metadata == "ChocoboForTheWin"
     assert node_5.fork_id is None
     assert sorted(node_5.parents) == sorted(
         {visitor_test.visited[3], visitor_test.visited[2]}
