@@ -1,5 +1,11 @@
 # Changelogs
 
+## Version 1.3.0
+(Released : December 2, 2021)
+* Add extension depth limitation in standard visitor
+* Add length calculation visitor
+* Improve tqdm usage
+
 ## Version 1.2.3
 (Released : May 11, 2021) : tag 1.2.3
 * Fix bug on Composed visitation (multiple start hook called)
