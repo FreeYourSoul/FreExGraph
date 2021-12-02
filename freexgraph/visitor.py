@@ -23,16 +23,20 @@
 
 import networkx as nx
 
-from typing import List, Tuple, Callable
+from typing import List, Tuple, Callable, Optional
 from tqdm import tqdm
 
 from freexgraph.freexgraph import FreExNode, GraphNode, AnyVisitor, root_node
 
 
-def _get_len(sorted_node_list: List[Tuple], with_progress_bar: bool) -> int:
+def _get_len(root: FreExNode, with_progress_bar: bool) -> int:
     if not with_progress_bar:
         return 0
-    return len([n for n in sorted_node_list])
+    from freexgraph.standard_visitor import LenCalculatorVisitor
+
+    v = LenCalculatorVisitor()
+    v.visit(root)
+    return v.result
 
 
 def _filter_graph_root_for_visitation(root: FreExNode, is_reversed: bool):
@@ -72,6 +76,9 @@ class AbstractVisitor:
     # List of Predicate/Hook
     __custom_hooks: List[Tuple[Callable, Callable]]
 
+    # progress bar set
+    progress_bar_: Optional[tqdm] = None
+
     def __init__(
         self,
         *,
@@ -89,36 +96,39 @@ class AbstractVisitor:
 
     def visit(self, root: FreExNode) -> bool:
         self.hook_start()
-        not_interrupted = self.apply_visitation_(root)
+
+        with tqdm(
+            total=_get_len(root, self.with_progress_bar),
+            disable=not self.with_progress_bar,
+            desc=f"Single Visitation {type(self).__name__:<24}",
+            leave=True,
+        ) as pbar:
+            self.progress_bar_ = pbar
+            not_interrupted = self.apply_visitation_(root)
+
         if not_interrupted:
             self.hook_end()
+
         return not_interrupted
 
     def apply_visitation_(self, root: FreExNode) -> bool:
         """do not override / directly use. Internal visitation method, use visit(root) instead"""
-
         sorted_node_list = _filter_graph_root_for_visitation(root, self.is_reversed)
 
-        with tqdm(
-            total=_get_len(sorted_node_list, self.with_progress_bar),
-            disable=not self.with_progress_bar,
-        ) as pbar:
-            pbar.set_description(f"Processing Visitor {type(self).__name__}")
-            for node_id in sorted_node_list:
-                if len(sorted_node_list) == 1:
-                    node = root
-                else:
-                    node = root.graph_ref.nodes[node_id]["content"]
+        for node_id in sorted_node_list:
+            if len(sorted_node_list) == 1:
+                node = root
+            else:
+                node = root.graph_ref.nodes[node_id]["content"]
 
-                # Trigger custom hook
-                for predicate, hook in self.__custom_hooks:
-                    if node.id != root_node and predicate(node):
-                        hook(node)
+            # Trigger custom hook
+            for predicate, hook in self.__custom_hooks:
+                if node.id != root_node and predicate(node):
+                    hook(node)
 
-                if not node.apply_accept_(self):
-                    return False
-                pbar.set_postfix({"node": node_id})
-                pbar.update()
+            if not node.apply_accept_(self):
+                return False
+
         return True
 
     def hook_start_graph_node(self, gn: GraphNode):
@@ -212,55 +222,34 @@ class VisitorComposer:
     def _composed_visit(self, root: FreExNode) -> bool:
         sorted_node_list = _filter_graph_root_for_visitation(root, self._is_reversed)
 
-        len_tqdm = len(root.graph_ref)
-        print(f"LEN >>>> {len_tqdm}")
-        with tqdm(
-            total=_get_len(sorted_node_list, self._with_progress_bar),
-            disable=not self._with_progress_bar,
-        ) as pbar:
-            pbar.set_description(f"{'Processing Composed Visitor':<40}")
-            progress_bars = self._produce_pg_bars(len_tqdm)
-
-            for node_id in sorted_node_list:
-                # do the visitation for the node on each action visitor
-                for action_visitor in self._action_composed:
-                    self._progress_pg_bars(progress_bars, node_id)
-                    if not root.graph_ref.nodes[node_id]["content"].apply_accept_(
-                        action_visitor
-                    ):
-                        self._close_pg_bars(progress_bars)
-                        return False
-
-                pbar.set_postfix({"node": node_id})
-                pbar.update()
-        self._close_pg_bars(progress_bars)
+        self._produce_pg_bars(
+            _get_len(root, self._with_progress_bar) * len(self._action_composed)
+        )
+        for node_id in sorted_node_list:
+            # do the visitation for the node on each action visitor
+            for action_visitor in self._action_composed:
+                if not root.graph_ref.nodes[node_id]["content"].apply_accept_(
+                    action_visitor
+                ):
+                    self._close_pg_bars()
+                    return False
+        self._close_pg_bars()
         return True
 
     def _produce_pg_bars(self, tqdm_len):
         if not self._with_progress_bar:
-            return []
-        bars = []
+            return
+        bar = tqdm(
+            total=tqdm_len,
+            leave=True,
+            desc=f"{'Visitation':<20}",
+        )
+        bar.refresh()
         for i in range(len(self._action_composed)):
-            bar = tqdm(
-                total=tqdm_len,
-                leave=True,
-                position=1,
-                desc="Visitor {0:<32}".format(type(self._action_composed[i]).__name__),
-            )
-            bar.refresh()
-            bars.append(bar)
-        return bars
+            self._action_composed[i].progress_bar_ = bar
 
-    def _progress_pg_bars(self, pg_bars, node_id):
+    def _close_pg_bars(self):
         if not self._with_progress_bar:
             return
-        for pbar in pg_bars:
-            pbar.set_postfix({"node": node_id})
-            pbar.update()
-            pbar.refresh()
-
-    def _close_pg_bars(self, pg_bars):
-        if not self._with_progress_bar:
-            return
-        for pbar in pg_bars:
-            pbar.close()
+        for visitor in self._action_composed:
+            visitor.progress_bar_.close()

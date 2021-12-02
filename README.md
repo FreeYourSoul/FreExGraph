@@ -19,6 +19,7 @@ It provide:
   * [Graph creation](#graph-creation)
   * [Graph Node](#graph-node) 
   * [Sub graph](#sub-graph) 
+  * [Implement an extension node](#implement-your-own-extension-node)
   * [Fork mechanism](#fork) 
 * [Visitors](#visitors)
     * [Visitor hook](#abstract-visitor-hooks)
@@ -257,6 +258,8 @@ sub_graph: FreExGraph = execution_graph.sub_graph(from_node_id="id1", to_nodes_i
 ```
 
 ### Implement your own extension node
+
+Currently, GraphNode is an extension node provided by default by freexgraph.
 
 It is possible to create your own node that would contain other node (and thus custom their way of doing a visitation). For instance if you want to implement a taskgroup (a node that contains a list of task not linked with any other node in the graph). It would be possible. Here is a simple implentations of such a node.
 
